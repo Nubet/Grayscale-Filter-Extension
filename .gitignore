@@ -1,0 +1,24 @@
+/dist/
+**/*.zip
+
+/node_modules/
+
+**/*.iml
+**/.idea/
+**/out/
+grayscale-filter.iml
+
+# Temp files
+**/*.tmp
+**/*.log
+npm-debug.log*
+
+.npm
+npm-debug.log*
+
+
+package.json
+package-lock.json
+**/*.md
+**/*.cmd
+**/*.txt

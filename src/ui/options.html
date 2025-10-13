@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Grayscale Filter - Options</title>
+  <link rel="stylesheet" href="ui.css">
+</head>
+<body class="options-body">
+  <div class="options-container">
+    <header class="options-header">
+      <h1>Grayscale Filter - Settings</h1>
+    </header>
+
+    <main class="options-content">
+      <!-- General Settings -->
+      <section class="settings-section">
+        <h2>General</h2>
+
+        <div class="setting-row">
+          <label class="toggle-label">
+            <input type="checkbox" id="enableToggle" />
+            <span class="toggle-text">Enable grayscale filter globally</span>
+          </label>
+        </div>
+
+        <div class="setting-row">
+          <label class="toggle-label">
+            <input type="checkbox" id="advancedTrackingToggle" />
+            <span class="toggle-text">Enable advanced SPA tracking</span>
+            <div class="setting-description">
+              <p class="hint">When enabled, the extension more accurately tracks changes in Single Page Applications (like GitHub, Twitter, etc.), but uses more system resources. Disable this on slower computers to improve performance.</p>
+            </div>
+          </label>
+        </div>
+
+        <div class="setting-row">
+          <label for="intensitySlider" class="setting-label">
+            Grayscale intensity: <span id="intensityValue">100</span>%
+          </label>
+          <input
+            type="range"
+            id="intensitySlider"
+            min="0"
+            max="100"
+            step="5"
+            value="100"
+            class="intensity-slider"
+          />
+        </div>
+      </section>
+
+      <!-- Exclude List -->
+      <section class="settings-section">
+        <h2>Exclude List</h2>
+        <p class="section-description">
+          Sites in this list will not have the grayscale filter applied.
+          You can use domains (example.com) or wildcards (*.example.com).
+        </p>
+
+        <div class="add-pattern-form">
+          <input
+            type="text"
+            id="newPatternInput"
+            placeholder="example.com or *.domain.com"
+            class="pattern-input"
+          />
+          <button id="addPatternBtn" class="btn btn-primary">Add</button>
+        </div>
+
+        <div class="exclude-list-container">
+          <table id="excludeTable" class="exclude-table">
+            <thead>
+              <tr>
+                <th>Pattern</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="excludeTableBody">
+              <tr class="empty-row">
+                <td colspan="2">No excluded sites</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- Import/Export -->
+      <section class="settings-section">
+        <h2>Import / Export</h2>
+        <p class="section-description">
+          Backup or restore your settings as JSON.
+        </p>
+
+        <div class="import-export-actions">
+          <button id="exportBtn" class="btn btn-secondary">Export Settings</button>
+          <button id="importBtn" class="btn btn-secondary">Import Settings</button>
+          <input type="file" id="importFileInput" accept=".json" style="display: none;" />
+        </div>
+      </section>
+
+      <!-- Feedback Message -->
+      <div id="feedback" class="feedback" style="display: none;"></div>
+    </main>
+  </div>
+
+  <script type="module" src="options.js"></script>
+</body>
+</html>
