@@ -1,90 +1,95 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Grayscale Filter</title>
-  <link rel="stylesheet" href="ui.css">
-</head>
-<body class="popup-body">
-  <div class="popup-container">
-    <header class="popup-header">
-      <h1>Grayscale Filter</h1>
-    </header>
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Grayscale Filter</title>
+        <link rel="stylesheet" href="ui.css" />
+    </head>
+    <body class="popup-body">
+        <div class="popup-container">
+            <header class="popup-header">
+                <div class="header-content">
+                    <h1>Grayscale Filter</h1>
+                    <img src="../../assets/icon48.png" alt="Grayscale Filter Logo" class="header-logo" />
+                </div>
+            </header>
 
-    <div class="popup-content">
-      <div class="toggle-section">
-        <label class="toggle-label">
-          <input type="checkbox" id="enableToggle" />
-          <span class="toggle-text">Enable grayscale filter</span>
-        </label>
-      </div>
+            <div class="popup-content">
+                <div class="toggle-section">
+                    <label class="toggle-label">
+                        <input type="checkbox" id="enableToggle" />
+                        <span class="toggle-text">Enable grayscale filter</span>
+                    </label>
+                </div>
 
-      <div class="intensity-section">
-        <label for="intensitySlider" class="intensity-label">
-          Intensity: <span id="intensityValue">100</span>%
-        </label>
-        <input
-          type="range"
-          id="intensitySlider"
-          min="0"
-          max="100"
-          step="5"
-          value="100"
-          class="intensity-slider"
-        />
+                <div class="intensity-section">
+                    <label for="intensitySlider" class="intensity-label">
+                        Intensity: <span id="intensityValue">100</span>%
+                    </label>
+                    <input
+                        type="range"
+                        id="intensitySlider"
+                        min="0"
+                        max="100"
+                        step="5"
+                        value="100"
+                        class="intensity-slider"
+                    />
 
-        <!-- Color swatch grid - pokazuje jak kolory wyglądają przy ustawionym poziomie szarości -->
-        <div class="color-preview-section">
-          <p class="preview-label">Color preview with current intensity:</p>
-          <div class="color-grid" id="colorGrid">
-            <!-- Red row - intensywność rosnąca od lewej do prawej -->
-            <div class="color-cell" data-color="red-light"></div>
-            <div class="color-cell" data-color="red-medium"></div>
-            <div class="color-cell" data-color="red-intense"></div>
+                    <div class="color-preview-section">
+                        <p class="preview-label">Color preview with current intensity:</p>
+                        <div class="color-grid" id="colorGrid">
+                            <!-- Red row  -->
+                            <div class="color-cell" data-color="red-light"></div>
+                            <div class="color-cell" data-color="red-medium"></div>
+                            <div class="color-cell" data-color="red-intense"></div>
 
-            <!-- Orange row - intensywność rosnąca od lewej do prawej -->
-            <div class="color-cell" data-color="orange-light"></div>
-            <div class="color-cell" data-color="orange-medium"></div>
-            <div class="color-cell" data-color="orange-intense"></div>
+                            <!-- Orange row  -->
+                            <div class="color-cell" data-color="orange-light"></div>
+                            <div class="color-cell" data-color="orange-medium"></div>
+                            <div class="color-cell" data-color="orange-intense"></div>
 
-            <!-- Yellow row - intensywność rosnąca od lewej do prawej -->
-            <div class="color-cell" data-color="yellow-light"></div>
-            <div class="color-cell" data-color="yellow-medium"></div>
-            <div class="color-cell" data-color="yellow-intense"></div>
+                            <!-- Yellow row  -->
+                            <div class="color-cell" data-color="yellow-light"></div>
+                            <div class="color-cell" data-color="yellow-medium"></div>
+                            <div class="color-cell" data-color="yellow-intense"></div>
 
-            <!-- Green row - intensywność rosnąca od lewej do prawej -->
-            <div class="color-cell" data-color="green-light"></div>
-            <div class="color-cell" data-color="green-medium"></div>
-            <div class="color-cell" data-color="green-intense"></div>
+                            <!-- Green row  -->
+                            <div class="color-cell" data-color="green-light"></div>
+                            <div class="color-cell" data-color="green-medium"></div>
+                            <div class="color-cell" data-color="green-intense"></div>
 
-            <!-- Blue row - intensywność rosnąca od lewej do prawej -->
-            <div class="color-cell" data-color="blue-light"></div>
-            <div class="color-cell" data-color="blue-medium"></div>
-            <div class="color-cell" data-color="blue-intense"></div>
+                            <!-- Blue row  -->
+                            <div class="color-cell" data-color="blue-light"></div>
+                            <div class="color-cell" data-color="blue-medium"></div>
+                            <div class="color-cell" data-color="blue-intense"></div>
 
-            <!-- Purple row - intensywność rosnąca od lewej do prawej -->
-            <div class="color-cell" data-color="purple-light"></div>
-            <div class="color-cell" data-color="purple-medium"></div>
-            <div class="color-cell" data-color="purple-intense"></div>
-          </div>
+                            <!-- Purple row  -->
+                            <div class="color-cell" data-color="purple-light"></div>
+                            <div class="color-cell" data-color="purple-medium"></div>
+                            <div class="color-cell" data-color="purple-intense"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="current-site-section">
+                    <p class="site-label">Current site:</p>
+                    <p id="currentSite" class="site-name">—</p>
+                    <button id="toggleSiteBtn" class="btn btn-primary">Exclude this site</button>
+                </div>
+
+                <div class="footer-links">
+                    <button id="manageBtn" class="btn-link">⚙️ Manage exclude list</button>
+                </div>
+
+                <div class="creator-footer">
+                    Created by <a href="https://github.com/Nubet" target="_blank">Nubet</a> with ❤️
+                </div>
+            </div>
         </div>
-      </div>
 
-      <div class="current-site-section">
-        <p class="site-label">Current site:</p>
-        <p id="currentSite" class="site-name">—</p>
-        <button id="toggleSiteBtn" class="btn btn-primary">
-          Exclude this site
-        </button>
-      </div>
-
-      <div class="footer-links">
-        <button id="openOptionsBtn" class="btn-link">⚙️ Manage exclude list</button>
-      </div>
-    </div>
-  </div>
-
-  <script type="module" src="popup.js"></script>
-</body>
+        <script src="../common/utils.js"></script>
+        <script src="popup.js"></script>
+    </body>
 </html>

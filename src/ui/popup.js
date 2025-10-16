@@ -1,159 +1,156 @@
-import { getSettings, saveSettings, extractDomain, isUrlExcluded } from "../common/storage.js";
-
+// Popup UI logic
 let currentTab = null;
-
 let currentSettings = null;
 
+// Initialize popup
 (async function init() {
     try {
-        const [tab] = await chrome.tabs.query({
-            active: true,
-            currentWindow: true
-        });
+        const [tab] = await browser.tabs.query({ active: true, currentWindow: true });
         currentTab = tab;
+
+        // Load settings using shared utility
         currentSettings = await getSettings();
+
         updateUI();
         setupEventListeners();
         updateColorGridPreview(currentSettings.intensity);
     } catch (e) {
-        console.error("Popup init error:", e);
+        console.error('Popup init error:', e);
+        showNotification('Error initializing popup', 'error');
     }
 })();
 
+function setupEventListeners() {
+    setupEnableToggle();
+    setupIntensitySlider();
+    setupSiteToggle();
+    setupManageButton();
+}
+
+function setupEnableToggle() {
+    const enableToggle = document.getElementById('enableToggle');
+    enableToggle.addEventListener('change', async () => {
+        currentSettings.enabled = enableToggle.checked;
+        await saveSettingsAndRefresh(currentSettings);
+    });
+}
+
+function setupIntensitySlider() {
+    const slider = document.getElementById('intensitySlider');
+    const value = document.getElementById('intensityValue');
+
+    slider.addEventListener('input', () => {
+        value.textContent = slider.value;
+    });
+
+    slider.addEventListener('change', async () => {
+        currentSettings.intensity = parseInt(slider.value, 10);
+        updateColorGridPreview(currentSettings.intensity);
+        await saveSettingsAndRefresh(currentSettings);
+    });
+}
+
+function setupSiteToggle() {
+    const toggleSiteBtn = document.getElementById('toggleSiteBtn');
+    if (!toggleSiteBtn) return;
+
+    toggleSiteBtn.addEventListener('click', async () => {
+        await toggleCurrentSiteExclusion();
+    });
+}
+
+async function toggleCurrentSiteExclusion() {
+    if (!currentTab?.url) {
+        showNotification('No valid URL found', 'error');
+        return;
+    }
+
+    const domain = extractDomain(currentTab.url);
+    if (!domain) {
+        showNotification('Invalid domain', 'error');
+        return;
+    }
+
+    const toggleSiteBtn = document.getElementById('toggleSiteBtn');
+    toggleSiteBtn.disabled = true;
+
+    try {
+        const isNowExcluded = await toggleSiteExclusion(domain);
+        currentSettings = await getSettings();
+
+        showNotification(
+            isNowExcluded ? 'Site added to exclusion list' : 'Site removed from exclusion list',
+            'success'
+        );
+
+        updateCurrentSiteDisplay();
+    } catch (e) {
+        console.error('Error toggling site:', e);
+        showNotification('Error updating site exclusion', 'error');
+    } finally {
+        toggleSiteBtn.disabled = false;
+    }
+}
+
+function setupManageButton() {
+    document.getElementById('manageBtn').addEventListener('click', () => {
+        browser.runtime.openOptionsPage();
+    });
+}
+
 function updateUI() {
-    const enableToggle = document.getElementById("enableToggle");
-    enableToggle.checked = currentSettings.enabled;
-    const intensitySlider = document.getElementById("intensitySlider");
-    const intensityValue = document.getElementById("intensityValue");
+    document.getElementById('enableToggle').checked = !!currentSettings.enabled;
+
+    const intensitySlider = document.getElementById('intensitySlider');
+    const intensityValue = document.getElementById('intensityValue');
     intensitySlider.value = currentSettings.intensity;
     intensityValue.textContent = currentSettings.intensity;
-    const currentSiteEl = document.getElementById("currentSite");
-    const toggleSiteBtn = document.getElementById("toggleSiteBtn");
-    if (currentTab?.url) {
-        const domain = extractDomain(currentTab.url);
-        if (domain) {
-            currentSiteEl.textContent = domain;
-            const isExcluded = isUrlExcluded(currentTab.url, currentSettings.excludeList);
-            toggleSiteBtn.textContent = isExcluded ? "Include this site" : "Exclude this site";
-            toggleSiteBtn.disabled = false;
-        } else {
-            currentSiteEl.textContent = "Not a valid website";
-            toggleSiteBtn.disabled = true;
-        }
+
+    updateCurrentSiteDisplay();
+}
+
+function updateCurrentSiteDisplay() {
+    const currentSiteEl = document.getElementById('currentSite');
+    const toggleSiteBtn = document.getElementById('toggleSiteBtn');
+
+    const domain = extractDomain(currentTab?.url);
+
+    if (domain) {
+        currentSiteEl.textContent = domain;
+        const matched = findMatchingPatternForDomain(domain, currentSettings.excludeList);
+        toggleSiteBtn.textContent = matched ? 'Include this site' : 'Exclude this site';
+        toggleSiteBtn.disabled = false;
     } else {
-        currentSiteEl.textContent = "No active tab";
+        currentSiteEl.textContent = currentTab?.url ? 'Invalid URL' : 'No active tab';
         toggleSiteBtn.disabled = true;
     }
 }
 
 function updateColorGridPreview(intensity) {
-    const colorGrid = document.getElementById("colorGrid");
+    const colorGrid = document.getElementById('colorGrid');
     if (!colorGrid) return;
+
     const filterValue = intensity / 100;
-    const colorCells = colorGrid.querySelectorAll(".color-cell");
-    colorCells.forEach(cell => {
-        cell.classList.remove("grayscale-preview");
+    const colorCells = colorGrid.querySelectorAll('.color-cell');
+
+    colorCells.forEach((cell) => {
+        cell.classList.toggle('grayscale-preview', intensity > 0);
         if (intensity > 0) {
-            cell.classList.add("grayscale-preview");
-            cell.style.setProperty("--preview-intensity", filterValue);
+            cell.style.setProperty('--preview-intensity', filterValue);
         } else {
-            cell.style.removeProperty("--preview-intensity");
+            cell.style.removeProperty('--preview-intensity');
         }
     });
-    console.log(`Color preview updated with intensity: ${intensity}% (${filterValue})`);
 }
 
-function setupEventListeners() {
-    document.getElementById("enableToggle").addEventListener("change", async e => {
-        currentSettings.enabled = e.target.checked;
-        await saveSettings({
-            enabled: currentSettings.enabled
-        });
-        showFeedback(currentSettings.enabled ? "Filter enabled" : "Filter disabled");
-    });
-    const intensitySlider = document.getElementById("intensitySlider");
-    const intensityValue = document.getElementById("intensityValue");
-    intensitySlider.addEventListener("input", e => {
-        const value = parseInt(e.target.value);
-        intensityValue.textContent = value;
-        updateColorGridPreview(value);
-    });
-    intensitySlider.addEventListener("change", async e => {
-        currentSettings.intensity = parseInt(e.target.value);
-        await saveSettings({
-            intensity: currentSettings.intensity
-        });
-        showFeedback(`Intensity set to ${currentSettings.intensity}%`);
-    });
-    document.getElementById("toggleSiteBtn").addEventListener("click", async () => {
-        await toggleCurrentSite();
-    });
-    document.getElementById("openOptionsBtn").addEventListener("click", () => {
-        chrome.runtime.openOptionsPage();
-    });
-    setupColorCellClicks();
-}
+function showNotification(message, type = 'info') {
+    const notification = document.createElement('div');
+    notification.className = `notification ${type}`;
+    notification.textContent = message;
 
-async function toggleCurrentSite() {
-    if (!currentTab?.url) return;
-    const domain = extractDomain(currentTab.url);
-    if (!domain) return;
-    try {
-        const isExcluded = isUrlExcluded(currentTab.url, currentSettings.excludeList);
-        if (isExcluded) {
-            currentSettings.excludeList = currentSettings.excludeList.filter(pattern => pattern !== domain);
-            showFeedback(`Included ${domain}`);
-        } else {
-            currentSettings.excludeList.push(domain);
-            showFeedback(`Excluded ${domain}`);
-        }
-        await saveSettings({
-            excludeList: currentSettings.excludeList
-        });
-        await chrome.tabs.reload(currentTab.id);
-        updateUI();
-    } catch (e) {
-        console.error("Toggle site error:", e);
-        showFeedback("Error: " + e.message, true);
-    }
-}
+    const existingNotification = document.querySelector('.notification');
+    if (existingNotification) existingNotification.remove();
 
-function showFeedback(message, isError = false) {
-    let feedback = document.getElementById("feedback");
-    if (!feedback) {
-        feedback = document.createElement("div");
-        feedback.id = "feedback";
-        feedback.className = "feedback";
-        document.querySelector(".popup-container").appendChild(feedback);
-    }
-    feedback.textContent = message;
-    feedback.className = isError ? "feedback error" : "feedback success";
-    feedback.style.display = "block";
-    setTimeout(() => {
-        feedback.style.display = "none";
-    }, 2e3);
-}
-
-function setupColorCellClicks() {
-    const colorCells = document.querySelectorAll(".color-cell");
-    colorCells.forEach(cell => {
-        cell.addEventListener("click", () => {
-            const color = cell.getAttribute("data-color");
-            document.querySelectorAll(".color-cell.active").forEach(c => c.classList.remove("active"));
-            cell.classList.add("active");
-            showFeedback(`Color: ${color}`);
-        });
-    });
-}
-
-if (typeof chrome.storage.onChanged.addEventListener === "function") {
-    chrome.storage.onChanged.addEventListener("change", async event => {
-        currentSettings = await getSettings();
-        updateUI();
-    });
-} else {
-    chrome.storage.onChanged.addListener(async (changes, areaName) => {
-        currentSettings = await getSettings();
-        updateUI();
-    });
+    document.body.appendChild(notification);
+    setTimeout(() => notification.remove(), 3000);
 }
