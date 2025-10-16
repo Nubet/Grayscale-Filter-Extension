@@ -1,1 +1,168 @@
-let currentSettings=null;function updateUI(){document.getElementById("enableToggle").checked=currentSettings.enabled,document.getElementById("advancedTrackingToggle").checked=currentSettings.advancedSpaTracking||!1;const e=document.getElementById("intensitySlider"),t=document.getElementById("intensityValue");e.value=currentSettings.intensity,t.textContent=currentSettings.intensity,updateExcludeTable()}function updateExcludeTable(){const e=document.getElementById("excludeTableBody");e.innerHTML="",currentSettings.excludeList?.length?currentSettings.excludeList.forEach((t,n)=>{const c=document.createElement("tr"),r=document.createElement("td");r.textContent=t,r.className="pattern-cell";const s=document.createElement("td");s.className="action-cell";const d=document.createElement("button");d.textContent="Remove",d.className="btn btn-small btn-danger",d.addEventListener("click",()=>removeExclude(n)),s.appendChild(d),c.appendChild(r),c.appendChild(s),e.appendChild(c)}):e.innerHTML='<tr class="empty-row"><td colspan="2">No excluded sites</td></tr>'}function setupEventListeners(){setupToggle("enableToggle","enabled",e=>"Filter "+(e?"enabled":"disabled")),setupToggle("advancedTrackingToggle","advancedSpaTracking",e=>"Advanced SPA tracking "+(e?"enabled":"disabled")),setupIntensitySlider(),setupExcludeForm(),setupImportExport()}function setupToggle(e,t,n){const c=document.getElementById(e);c.addEventListener("change",async()=>{try{currentSettings[t]=c.checked,await saveSettingsAndRefresh(currentSettings),showFeedback(n(c.checked))}catch(e){console.error(`Error toggling ${t}:`,e),showFeedback(`Error: ${e.message}`,!0)}})}function setupIntensitySlider(){const e=document.getElementById("intensitySlider"),t=document.getElementById("intensityValue");e.addEventListener("input",()=>{t.textContent=e.value}),e.addEventListener("change",async()=>{try{currentSettings.intensity=parseInt(e.value,10),await saveSettingsAndRefresh(currentSettings),showFeedback(`Intensity set to ${e.value}%`)}catch(e){console.error("Error updating intensity:",e),showFeedback("Error updating intensity: "+e.message,!0)}})}function setupExcludeForm(){const e=document.getElementById("addExcludeForm");e?.addEventListener("submit",async e=>{e.preventDefault();const t=document.getElementById("excludeInput"),n=t.value.trim();if(n)try{if(currentSettings.excludeList||(currentSettings.excludeList=[]),currentSettings.excludeList.includes(n))return void showFeedback("This pattern is already excluded",!0);currentSettings.excludeList.push(n),await saveSettingsAndRefresh(currentSettings),t.value="",updateExcludeTable(),showFeedback("Site added to exclude list")}catch(e){console.error("Error adding exclude pattern:",e),showFeedback("Error adding pattern: "+e.message,!0)}})}function setupImportExport(){const e=document.getElementById("exportBtn");e?.addEventListener("click",()=>{const e=JSON.stringify(currentSettings,null,2),t=new Blob([e],{type:"application/json"}),n=URL.createObjectURL(t),c=document.createElement("a");c.href=n,c.download="grayscale-filter-settings.json",document.body.appendChild(c),c.click(),document.body.removeChild(c),URL.revokeObjectURL(n)});const t=document.getElementById("importBtn");t?.addEventListener("click",()=>{const e=document.createElement("input");e.type="file",e.accept="application/json",e.onchange=async e=>{try{const t=e.target.files[0],n=await t.text(),c=JSON.parse(n);await saveSettingsAndRefresh(c),currentSettings=c,updateUI(),showFeedback("Settings imported successfully")}catch(e){console.error("Error importing settings:",e),showFeedback("Error importing settings: "+e.message,!0)}},e.click()})}async function removeExclude(e){try{currentSettings.excludeList.splice(e,1),await saveSettingsAndRefresh(currentSettings),updateExcludeTable(),showFeedback("Site removed from exclude list")}catch(e){console.error("Error removing exclude pattern:",e),showFeedback("Error removing pattern: "+e.message,!0)}}function showFeedback(e,t=!1){const n=document.getElementById("feedback");n&&(n.textContent=e,n.className=t?"error":"success",n.style.opacity="1",setTimeout(()=>{n.style.opacity="0"},3e3))}!async function(){try{currentSettings=await getSettings(),updateUI(),setupEventListeners()}catch(e){console.error("Options init error:",e),showFeedback("Error loading settings: "+e.message,!0)}}();
+import { getSettings, saveSettings, exportSettings, importSettings } from "../common/storage.js";
+
+let currentSettings = null;
+
+(async function init() {
+    try {
+        currentSettings = await getSettings();
+        updateUI();
+        setupEventListeners();
+    } catch (e) {
+        console.error("Options init error:", e);
+        showFeedback("Error loading settings: " + e.message, true);
+    }
+})();
+
+function updateUI() {
+    document.getElementById("enableToggle").checked = currentSettings.enabled;
+    document.getElementById("advancedTrackingToggle").checked = currentSettings.advancedTracking;
+    const intensitySlider = document.getElementById("intensitySlider");
+    const intensityValue = document.getElementById("intensityValue");
+    intensitySlider.value = currentSettings.intensity;
+    intensityValue.textContent = currentSettings.intensity;
+    updateExcludeTable();
+}
+
+function updateExcludeTable() {
+    const tbody = document.getElementById("excludeTableBody");
+    tbody.innerHTML = "";
+    if (!currentSettings.excludeList || currentSettings.excludeList.length === 0) {
+        tbody.innerHTML = '<tr class="empty-row"><td colspan="2">No excluded sites</td></tr>';
+        return;
+    }
+    currentSettings.excludeList.forEach((pattern, index) => {
+        const row = document.createElement("tr");
+        const patternCell = document.createElement("td");
+        patternCell.textContent = pattern;
+        patternCell.className = "pattern-cell";
+        const actionCell = document.createElement("td");
+        actionCell.className = "action-cell";
+        const removeBtn = document.createElement("button");
+        removeBtn.textContent = "Remove";
+        removeBtn.className = "btn btn-small btn-danger";
+        removeBtn.addEventListener("click", () => removePattern(index));
+        actionCell.appendChild(removeBtn);
+        row.appendChild(patternCell);
+        row.appendChild(actionCell);
+        tbody.appendChild(row);
+    });
+}
+
+function setupEventListeners() {
+    document.getElementById("enableToggle").addEventListener("change", async e => {
+        currentSettings.enabled = e.target.checked;
+        await saveSettings({
+            enabled: currentSettings.enabled
+        });
+        showFeedback(currentSettings.enabled ? "Filter enabled" : "Filter disabled");
+    });
+    document.getElementById("advancedTrackingToggle").addEventListener("change", async e => {
+        currentSettings.advancedTracking = e.target.checked;
+        await saveSettings({
+            advancedTracking: currentSettings.advancedTracking
+        });
+        showFeedback(currentSettings.advancedTracking ? "Advanced tracking enabled" : "Advanced tracking disabled");
+    });
+    const intensitySlider = document.getElementById("intensitySlider");
+    const intensityValue = document.getElementById("intensityValue");
+    intensitySlider.addEventListener("input", e => {
+        intensityValue.textContent = e.target.value;
+    });
+    intensitySlider.addEventListener("change", async e => {
+        currentSettings.intensity = parseInt(e.target.value);
+        await saveSettings({
+            intensity: currentSettings.intensity
+        });
+        showFeedback(`Intensity set to ${currentSettings.intensity}%`);
+    });
+    document.getElementById("addPatternBtn").addEventListener("click", addPattern);
+    document.getElementById("newPatternInput").addEventListener("keypress", e => {
+        if (e.key === "Enter") {
+            addPattern();
+        }
+    });
+    document.getElementById("exportBtn").addEventListener("click", handleExport);
+    document.getElementById("importBtn").addEventListener("click", () => {
+        document.getElementById("importFileInput").click();
+    });
+    document.getElementById("importFileInput").addEventListener("change", handleImport);
+}
+
+async function addPattern() {
+    const input = document.getElementById("newPatternInput");
+    const pattern = input.value.trim();
+    if (!pattern) {
+        showFeedback("Please enter a pattern", true);
+        return;
+    }
+    if (currentSettings.excludeList.includes(pattern)) {
+        showFeedback("Pattern already exists", true);
+        return;
+    }
+    currentSettings.excludeList.push(pattern);
+    await saveSettings({
+        excludeList: currentSettings.excludeList
+    });
+    input.value = "";
+    updateExcludeTable();
+    showFeedback(`Added: ${pattern}`);
+}
+
+async function removePattern(index) {
+    const pattern = currentSettings.excludeList[index];
+    currentSettings.excludeList.splice(index, 1);
+    await saveSettings({
+        excludeList: currentSettings.excludeList
+    });
+    updateExcludeTable();
+    showFeedback(`Removed: ${pattern}`);
+}
+
+async function handleExport() {
+    try {
+        const jsonString = await exportSettings();
+        const blob = new Blob([ jsonString ], {
+            type: "application/json"
+        });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `grayscale-filter-settings-${Date.now()}.json`;
+        a.click();
+        URL.revokeObjectURL(url);
+        showFeedback("Settings exported successfully");
+    } catch (e) {
+        console.error("Export error:", e);
+        showFeedback("Export failed: " + e.message, true);
+    }
+}
+
+async function handleImport(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    try {
+        const text = await file.text();
+        currentSettings = await importSettings(text);
+        updateUI();
+        showFeedback("Settings imported successfully");
+        e.target.value = "";
+    } catch (e) {
+        console.error("Import error:", e);
+        showFeedback("Import failed: " + e.message, true);
+    }
+}
+
+function showFeedback(message, isError = false) {
+    const feedback = document.getElementById("feedback");
+    feedback.textContent = message;
+    feedback.className = isError ? "feedback error" : "feedback success";
+    feedback.style.display = "block";
+    setTimeout(() => {
+        feedback.style.display = "none";
+    }, 3e3);
+}
+
+chrome.storage.onChanged.addListener(async (changes, areaName) => {
+    currentSettings = await getSettings();
+    updateUI();
+});
