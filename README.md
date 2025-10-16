@@ -9,7 +9,7 @@ Firefox extension that applies a customizable grayscale filter to any website.
 * **Domain Whitelist**  
   Exclude specific sites or domains to retain their original colors.
 * **Zero Data Collection**  
-  Fully offline and privacy-centric—no tracking, analytics, or external requests.
+  Fully offline - no tracking, analytics, or external requests.
 * **Seamless Injection**  
   Applies CSS at page load for a smooth, unintrusive experience.
 
