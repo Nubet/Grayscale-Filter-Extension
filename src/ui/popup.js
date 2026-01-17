@@ -152,5 +152,5 @@ function showNotification(message, type = 'info') {
     if (existingNotification) existingNotification.remove();
 
     document.body.appendChild(notification);
-    setTimeout(() => notification.remove(), 3000);
+    setTimeout(() => notification.remove(), 2000);
 }

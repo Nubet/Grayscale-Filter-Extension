@@ -1,114 +1,116 @@
 <!doctype html>
 <html lang="en">
-    <head>
-        <meta charset="UTF-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>Grayscale Filter - Settings</title>
-        <link rel="stylesheet" href="ui.css" />
-    </head>
-    <body class="options-body">
-        <div class="options-container">
-            <header class="options-header">
-                <div class="header-content">
-                    <h1>Grayscale Filter - Settings</h1>
-                </div>
-            </header>
-
-            <main class="options-content">
-                <div id="feedback" class="feedback-message"></div>
-
-                <!-- General Settings -->
-                <section class="settings-section">
-                    <h2>General</h2>
-
-                    <div class="setting-row">
-                        <label class="toggle-label">
-                            <input type="checkbox" id="enableToggle" />
-                            <span class="toggle-text">Enable grayscale filter globally</span>
-                        </label>
-                    </div>
-
-                    <div class="setting-row">
-                        <label class="toggle-label">
-                            <input type="checkbox" id="advancedTrackingToggle" />
-                            <span class="toggle-text">Enable advanced SPA tracking</span>
-                            <div class="setting-description">
-                                <p class="hint">
-                                    Improves filter behavior on dynamic websites that change content without page
-                                    reload. Disable only if you experience performance issues.
-                                </p>
-                            </div>
-                        </label>
-                    </div>
-
-                    <div class="setting-row">
-                        <label for="intensitySlider" class="setting-label">
-                            Grayscale intensity: <span id="intensityValue">100</span>%
-                        </label>
-                        <input
-                            type="range"
-                            id="intensitySlider"
-                            min="0"
-                            max="100"
-                            step="5"
-                            value="100"
-                            class="intensity-slider"
-                        />
-                    </div>
-                </section>
-
-                <!-- Exclude List -->
-                <section class="settings-section">
-                    <h2>Exclude List</h2>
-                    <p class="section-description">
-                        Sites in this list will not have the grayscale filter applied. You can use domains (example.com)
-                        or wildcards (*.example.com).
-                    </p>
-
-                    <form id="addExcludeForm" class="add-pattern-form">
-                        <input
-                            type="text"
-                            id="excludeInput"
-                            placeholder="example.com or *.domain.com"
-                            class="pattern-input"
-                            required
-                        />
-                        <button type="submit" class="btn btn-primary">Add</button>
-                    </form>
-
-                    <div class="exclude-list-container">
-                        <table id="excludeTable" class="exclude-table">
-                            <thead>
-                                <tr>
-                                    <th>Pattern</th>
-                                    <th>Action</th>
-                                </tr>
-                            </thead>
-                            <tbody id="excludeTableBody">
-                                <!-- Filled dynamically -->
-                            </tbody>
-                        </table>
-                    </div>
-                </section>
-
-                <!-- Import/Export -->
-                <section class="settings-section">
-                    <h2>Import / Export</h2>
-                    <p class="section-description">Backup or restore your settings as JSON.</p>
-
-                    <div class="import-export-actions">
-                        <button id="exportBtn" class="btn btn-secondary">Export Settings</button>
-                        <button id="importBtn" class="btn btn-secondary">Import Settings</button>
-                    </div>
-                </section>
-            </main>
-
-            <footer class="options-footer">
-                <p>Created by <a href="https://github.com/Nubet" target="_blank">Nubet</a> with ❤️</p>
-            </footer>
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Grayscale Settings</title>
+    <link rel="stylesheet" href="ui.css" />
+</head>
+<body class="options-body">
+<div class="options-container">
+    <header class="options-header">
+        <div class="header-content">
+            <h1>Settings</h1>
         </div>
+        <p class="section-description">Manage how the grayscale filter behaves globally and on specific sites.</p>
+    </header>
 
-        <script src="../common/utils.js"></script>
-        <script src="options.js"></script>
-    </body>
+    <main class="options-content" style="display: flex; flex-direction: column; gap: 2rem;">
+        <div id="feedback" class="feedback" style="display: none; opacity: 0;"></div>
+
+        <section class="settings-section">
+            <h2>General</h2>
+            <div style="display: flex; flex-direction: column; gap: 1.5rem; margin-top: 1rem;">
+                <div class="setting-row">
+                    <label class="toggle-label">
+                        <div>
+                            <span class="toggle-text" style="display: block;">Global Enable</span>
+                            <span class="site-label" style="text-transform: none;">Turn the extension on or off everywhere.</span>
+                        </div>
+                        <input type="checkbox" id="enableToggle" />
+                    </label>
+                </div>
+
+                <div class="setting-row">
+                    <label class="toggle-label">
+                        <div>
+                            <span class="toggle-text" style="display: block;">SPA Tracking</span>
+                            <span class="site-label" style="text-transform: none;">Better support for dynamic sites (React, etc.)</span>
+                        </div>
+                        <input type="checkbox" id="advancedTrackingToggle" />
+                    </label>
+                </div>
+
+                <div class="setting-row" style="padding-top: 0.5rem; border-top: 1px solid hsl(var(--border));">
+                    <label for="intensitySlider" class="intensity-label" style="margin-bottom: 0.75rem;">
+                        <span>Global Intensity</span>
+                        <span id="intensityValue" style="font-family: monospace;">100%</span>
+                    </label>
+                    <input
+                        type="range"
+                        id="intensitySlider"
+                        min="0"
+                        max="100"
+                        step="5"
+                        value="100"
+                        class="intensity-slider"
+                    />
+                </div>
+            </div>
+        </section>
+
+        <section class="settings-section">
+            <h2>Exclusions</h2>
+            <p class="section-description">
+                Prevent the filter from running on specific domains.
+            </p>
+
+            <form id="addExcludeForm" class="add-pattern-form">
+                <input
+                    type="text"
+                    id="excludeInput"
+                    placeholder="e.g. youtube.com or *.google.com"
+                    class="pattern-input"
+                    required
+                />
+                <button type="submit" class="btn btn-primary">Add Site</button>
+            </form>
+
+            <div class="exclude-list-container">
+                <table id="excludeTable" class="exclude-table">
+                    <thead>
+                    <tr>
+                        <th>Domain Pattern</th>
+                        <th style="width: 80px;"></th>
+                    </tr>
+                    </thead>
+                    <tbody id="excludeTableBody">
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <section class="settings-section">
+            <h2>Data Management</h2>
+            <p class="section-description">Backup your configuration or restore from a file.</p>
+
+            <div class="import-export-actions">
+                <button id="exportBtn" class="btn btn-secondary">
+                    <span style="margin-right: 8px;">↓</span> Export JSON
+                </button>
+                <button id="importBtn" class="btn btn-secondary">
+                    <span style="margin-right: 8px;">↑</span> Import JSON
+                </button>
+            </div>
+        </section>
+    </main>
+
+    <footer class="creator-footer">
+        <p>Open source project by <a href="https://github.com/Nubet" target="_blank">Nubet</a></p>
+    </footer>
+</div>
+
+<script src="../common/utils.js"></script>
+<script src="options.js"></script>
+</body>
 </html>

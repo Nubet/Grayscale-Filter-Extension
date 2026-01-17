@@ -3,201 +3,313 @@ let currentSettings = null;
 (async function init() {
     try {
         currentSettings = await getSettings();
-
-        updateUI();
-        setupEventListeners();
-    } catch (e) {
-        console.error('Options init error:', e);
-        showFeedback('Error loading settings: ' + e.message, true);
+        applySettingsToUi(currentSettings);
+        bindAllListeners();
+        renderExcludeList(currentSettings);
+    } catch (error) {
+        console.error('Options init error:', error);
+        showFeedback('Error initializing settings', 'error');
     }
 })();
 
-function updateUI() {
-    document.getElementById('enableToggle').checked = currentSettings.enabled;
-    document.getElementById('advancedTrackingToggle').checked = currentSettings.advancedSpaTracking || false;
-
-    const intensitySlider = document.getElementById('intensitySlider');
-    const intensityValue = document.getElementById('intensityValue');
-    intensitySlider.value = currentSettings.intensity;
-    intensityValue.textContent = currentSettings.intensity;
-
-    updateExcludeTable();
-}
-
-function updateExcludeTable() {
-    const tbody = document.getElementById('excludeTableBody');
-    tbody.innerHTML = '';
-
-    if (!currentSettings.excludeList?.length) {
-        tbody.innerHTML = '<tr class="empty-row"><td colspan="2">No excluded sites</td></tr>';
-        return;
-    }
-
-    currentSettings.excludeList.forEach((pattern, index) => {
-        const row = document.createElement('tr');
-
-        const patternCell = document.createElement('td');
-        patternCell.textContent = pattern;
-        patternCell.className = 'pattern-cell';
-
-        const actionCell = document.createElement('td');
-        actionCell.className = 'action-cell';
-
-        const removeBtn = document.createElement('button');
-        removeBtn.textContent = 'Remove';
-        removeBtn.className = 'btn btn-small btn-danger';
-        removeBtn.addEventListener('click', () => removeExclude(index));
-
-        actionCell.appendChild(removeBtn);
-        row.appendChild(patternCell);
-        row.appendChild(actionCell);
-        tbody.appendChild(row);
+function bindAllListeners() {
+    bindToggleListener({
+        elementId: 'enableToggle',
+        getNextValue: (checkbox) => checkbox.checked,
+        applyToSettings: (settings, nextValue) => { settings.enabled = nextValue; },
+        successMessage: 'Settings saved',
     });
+
+    bindToggleListener({
+        elementId: 'advancedTrackingToggle',
+        getNextValue: (checkbox) => checkbox.checked,
+        applyToSettings: (settings, nextValue) => { settings.advancedSpaTracking = nextValue; },
+        successMessage: 'SPA Tracking updated',
+    });
+
+    bindIntensitySliderListeners();
+    bindExcludeFormListener();
+    bindImportExportListeners();
 }
 
-function setupEventListeners() {
-    setupToggle('enableToggle', 'enabled', (checked) => `Filter ${checked ? 'enabled' : 'disabled'}`);
+function bindToggleListener({ elementId, getNextValue, applyToSettings, successMessage }) {
+    const toggle = getElementById(elementId);
+    if (!toggle) return;
 
-    setupToggle(
-        'advancedTrackingToggle',
-        'advancedSpaTracking',
-        (checked) => `Advanced SPA tracking ${checked ? 'enabled' : 'disabled'}`
-    );
-
-    setupIntensitySlider();
-    setupExcludeForm();
-    setupImportExport();
-}
-
-function setupToggle(selector, settingKey, messageFunc) {
-    const toggle = document.getElementById(selector);
     toggle.addEventListener('change', async () => {
-        try {
-            currentSettings[settingKey] = toggle.checked;
-            await saveSettingsAndRefresh(currentSettings);
-            showFeedback(messageFunc(toggle.checked));
-        } catch (e) {
-            console.error(`Error toggling ${settingKey}:`, e);
-            showFeedback(`Error: ${e.message}`, true);
-        }
+        const nextValue = getNextValue(toggle);
+        applyToSettings(currentSettings, nextValue);
+
+        await saveSettingsAndRefreshUi();
+        showFeedback(successMessage, 'success');
     });
 }
 
-function setupIntensitySlider() {
-    const slider = document.getElementById('intensitySlider');
-    const value = document.getElementById('intensityValue');
+function bindIntensitySliderListeners() {
+    const slider = getElementById('intensitySlider');
+    const value = getElementById('intensityValue');
+    if (!slider || !value) return;
 
     slider.addEventListener('input', () => {
-        value.textContent = slider.value;
+        value.textContent = slider.value + '%';
     });
 
     slider.addEventListener('change', async () => {
-        try {
-            currentSettings.intensity = parseInt(slider.value, 10);
-            await saveSettingsAndRefresh(currentSettings);
-            showFeedback(`Intensity set to ${slider.value}%`);
-        } catch (e) {
-            console.error('Error updating intensity:', e);
-            showFeedback('Error updating intensity: ' + e.message, true);
-        }
+        currentSettings.intensity = parseInt(slider.value, 10);
+        await saveSettingsAndRefreshUi();
+        showFeedback('Intensity updated', 'success');
     });
 }
 
-function setupExcludeForm() {
-    const addForm = document.getElementById('addExcludeForm');
-    addForm?.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const input = document.getElementById('excludeInput');
-        const pattern = input.value.trim();
+function bindExcludeFormListener() {
+    const form = getElementById('addExcludeForm');
+    const input = getElementById('excludeInput');
+    if (!form || !input) return;
 
+    form.addEventListener('submit', async (event) => {
+        event.preventDefault();
+
+        const pattern = normalizePatternInput(input.value);
         if (!pattern) return;
 
-        try {
-            if (!currentSettings.excludeList) {
-                currentSettings.excludeList = [];
-            }
-
-            if (currentSettings.excludeList.includes(pattern)) {
-                showFeedback('This pattern is already excluded', true);
-                return;
-            }
-
-            currentSettings.excludeList.push(pattern);
-            await saveSettingsAndRefresh(currentSettings);
-
-            input.value = '';
-            updateExcludeTable();
-            showFeedback('Site added to exclude list');
-        } catch (e) {
-            console.error('Error adding exclude pattern:', e);
-            showFeedback('Error adding pattern: ' + e.message, true);
+        const validationError = validateExcludePattern(pattern);
+        if (validationError) {
+            showFeedback(validationError, 'error');
+            return;
         }
+
+        const existsError = validateNotAlreadyExcluded(currentSettings, pattern);
+        if (existsError) {
+            showFeedback(existsError, 'error');
+            return;
+        }
+
+        addPatternToExclusions(currentSettings, pattern);
+        await saveSettingsAndRefreshUi();
+
+        clearInput(input);
+        renderExcludeList(currentSettings);
+        showFeedback('Site added to exclusion list', 'success');
     });
 }
 
-function setupImportExport() {
-    const exportBtn = document.getElementById('exportBtn');
-    exportBtn?.addEventListener('click', () => {
-        const data = JSON.stringify(currentSettings, null, 2);
-        const blob = new Blob([data], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
+function bindImportExportListeners() {
+    const exportBtn = getElementById('exportBtn');
+    const importBtn = getElementById('importBtn');
 
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = 'grayscale-filter-settings.json';
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-    });
-
-    const importBtn = document.getElementById('importBtn');
-    importBtn?.addEventListener('click', () => {
-        const input = document.createElement('input');
-        input.type = 'file';
-        input.accept = 'application/json';
-
-        input.onchange = async (e) => {
-            try {
-                const file = e.target.files[0];
-                const text = await file.text();
-                const settings = JSON.parse(text);
-
-                await saveSettingsAndRefresh(settings);
-                currentSettings = settings;
-                updateUI();
-                showFeedback('Settings imported successfully');
-            } catch (e) {
-                console.error('Error importing settings:', e);
-                showFeedback('Error importing settings: ' + e.message, true);
-            }
-        };
-
-        input.click();
-    });
+    if (exportBtn) exportBtn.addEventListener('click', exportSettings);
+    if (importBtn) importBtn.addEventListener('click', importSettings);
 }
 
-async function removeExclude(index) {
+async function saveSettingsAndRefreshUi() {
+    await saveSettingsAndRefresh(currentSettings);
+}
+
+async function exportSettings() {
     try {
-        currentSettings.excludeList.splice(index, 1);
-        await saveSettingsAndRefresh(currentSettings);
-        updateExcludeTable();
-        showFeedback('Site removed from exclude list');
-    } catch (e) {
-        console.error('Error removing exclude pattern:', e);
-        showFeedback('Error removing pattern: ' + e.message, true);
+        const settings = await getSettings();
+        const dataStr = JSON.stringify(settings, null, 2);
+        const dataBlob = new Blob([dataStr], { type: 'application/json' });
+
+        downloadBlob(dataBlob, 'grayscale-filter-settings.json');
+
+        showFeedback('Settings exported successfully', 'success');
+    } catch (error) {
+        console.error('Export error:', error);
+        showFeedback('Failed to export settings', 'error');
     }
 }
 
-function showFeedback(message, isError = false) {
-    const feedback = document.getElementById('feedback');
+function importSettings() {
+    const fileInput = createJsonFileInput();
+
+    fileInput.addEventListener('change', async (event) => {
+        const file = getFirstSelectedFile(event);
+        if (!file) return;
+
+        try {
+            const text = await file.text();
+            const imported = JSON.parse(text);
+
+            validateImportedSettings(imported);
+
+            currentSettings = normalizeImportedSettings(imported);
+
+            await saveSettingsAndRefreshUi();
+            applySettingsToUi(currentSettings);
+            renderExcludeList(currentSettings);
+            showFeedback('Settings imported successfully', 'success');
+        } catch (error) {
+            console.error('Import error:', error);
+            showFeedback('Failed to import settings: ' + error.message, 'error');
+        }
+    });
+
+    fileInput.click();
+}
+
+function applySettingsToUi(settings) {
+    if (!settings) return;
+
+    setCheckboxChecked('enableToggle', !!settings.enabled);
+    setCheckboxChecked('advancedTrackingToggle', !!settings.advancedSpaTracking);
+
+    const slider = getElementById('intensitySlider');
+    const value = getElementById('intensityValue');
+    if (slider && value) {
+        slider.value = settings.intensity;
+        value.textContent = settings.intensity + '%';
+    }
+}
+
+function renderExcludeList(settings) {
+    const tbody = getElementById('excludeTableBody');
+    if (!tbody) return;
+
+    tbody.innerHTML = '';
+
+    if (!settings.excludeList || settings.excludeList.length === 0) {
+        renderEmptyExcludeState(tbody);
+        return;
+    }
+
+    settings.excludeList.forEach((pattern) => {
+        const row = tbody.insertRow();
+
+        const patternCell = row.insertCell();
+        patternCell.textContent = pattern;
+        patternCell.style.fontFamily = 'monospace';
+
+        const actionCell = row.insertCell();
+        actionCell.appendChild(createRemoveButton(pattern));
+    });
+}
+
+function renderEmptyExcludeState(tbody) {
+    const row = tbody.insertRow();
+    const cell = row.insertCell();
+    cell.colSpan = 2;
+    cell.textContent = 'No excluded sites';
+    cell.style.textAlign = 'center';
+    cell.style.color = 'hsl(var(--muted-foreground))';
+    cell.style.fontStyle = 'italic';
+    cell.style.padding = '1.5rem';
+}
+
+function createRemoveButton(pattern) {
+    const removeBtn = document.createElement('button');
+    removeBtn.textContent = 'Remove';
+    removeBtn.className = 'btn-link';
+    removeBtn.style.color = 'hsl(var(--destructive))';
+    removeBtn.addEventListener('click', async () => {
+        await removeSiteFromExclusions(pattern);
+    });
+    return removeBtn;
+}
+
+async function removeSiteFromExclusions(pattern) {
+    try {
+        currentSettings.excludeList = currentSettings.excludeList.filter(p => p !== pattern);
+        await saveSettingsAndRefreshUi();
+        renderExcludeList(currentSettings);
+        showFeedback('Site removed from exclusion list', 'success');
+    } catch (error) {
+        console.error('Error removing site:', error);
+        showFeedback('Failed to remove site', 'error');
+    }
+}
+
+function showFeedback(message, type = 'info') {
+    const feedback = getElementById('feedback');
     if (!feedback) return;
 
+    feedback.className = `feedback ${type}`;
     feedback.textContent = message;
-    feedback.className = isError ? 'error' : 'success';
+    feedback.style.display = 'block';
     feedback.style.opacity = '1';
 
     setTimeout(() => {
         feedback.style.opacity = '0';
+        setTimeout(() => {
+            feedback.style.display = 'none';
+        }, 300);
     }, 3000);
+}
+
+function getElementById(elementId) {
+    return document.getElementById(elementId);
+}
+
+function setCheckboxChecked(elementId, isChecked) {
+    const checkbox = getElementById(elementId);
+    if (checkbox) checkbox.checked = isChecked;
+}
+
+function normalizePatternInput(rawValue) {
+    return (rawValue ?? '').trim();
+}
+
+function validateExcludePattern(pattern) {
+    if (pattern.includes('/') && !pattern.startsWith('*.')) {
+        return 'Invalid pattern. Use domain format like "example.com" or "*.example.com"';
+    }
+    return null;
+}
+
+function validateNotAlreadyExcluded(settings, pattern) {
+    if (settings.excludeList.includes(pattern)) {
+        return 'This site is already in the exclusion list';
+    }
+    return null;
+}
+
+function addPatternToExclusions(settings, pattern) {
+    settings.excludeList.push(pattern);
+}
+
+function clearInput(input) {
+    input.value = '';
+}
+
+function createJsonFileInput() {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.json';
+    return input;
+}
+
+function getFirstSelectedFile(event) {
+    return event?.target?.files?.[0] ?? null;
+}
+
+function validateImportedSettings(imported) {
+    const isValid =
+        typeof imported.enabled === 'boolean' &&
+        typeof imported.intensity === 'number' &&
+        Array.isArray(imported.excludeList);
+
+    if (!isValid) throw new Error('Invalid settings format');
+}
+
+function normalizeImportedSettings(imported) {
+    return {
+        enabled: imported.enabled,
+        intensity: imported.intensity,
+        excludeList: imported.excludeList,
+        advancedSpaTracking: imported.advancedSpaTracking ?? true,
+    };
+}
+
+function downloadBlob(blob, filename) {
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+
+    link.href = url;
+    link.download = filename;
+
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    URL.revokeObjectURL(url);
 }

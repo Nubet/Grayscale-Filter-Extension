@@ -1,31 +1,32 @@
 html.grayscale-filter-active {
     filter: grayscale(var(--grayscale-intensity, 1)) !important;
     -webkit-filter: grayscale(var(--grayscale-intensity, 1)) !important;
-    --grayscale-filter-applied: 1 !important;
 }
 
-/* Ensure filter applies to the entire page */
+/* Ensure filter applies deeply but preserves stacked contexts where possible */
 html.grayscale-filter-active body {
     background-color: inherit;
+    min-height: 100vh;
 }
 
-/* Fix for SPA and dynamically loaded content */
+/* Fix for SPA and dynamically loaded content  */
 html.grayscale-filter-active * {
-    transition-property: none !important;
+    will-change: auto;
 }
 
-/* Fix for iframes */
+/* Don’t grayscale iframe contents (can cause double-filtering or blur) */
 html.grayscale-filter-active iframe {
-    filter: none !important; /* Prevent double filtering */
+    filter: none !important;
     -webkit-filter: none !important;
 }
 
-/* Fix for sites with backdrop-filter */
+/* If an element uses backdrop-filter, apply grayscale to the backdrop too */
 html.grayscale-filter-active *[style*='backdrop-filter'] {
     backdrop-filter: grayscale(var(--grayscale-intensity, 1)) !important;
     -webkit-backdrop-filter: grayscale(var(--grayscale-intensity, 1)) !important;
 }
 
+/* Opt-out helper for injected UI (extension popups, buttons, badges, etc.) */
 .grayscale-exclude {
     filter: none !important;
     -webkit-filter: none !important;
