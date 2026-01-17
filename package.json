@@ -1,0 +1,26 @@
+{
+  "name": "grayscale-everywhere",
+  "version": "2.1.3",
+  "description": "Firefox extension that applies a customizable grayscale filter to any website",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "bun run build:dev && bun run watch",
+    "build": "bun run build:prod",
+    "build:dev": "bun run scripts/build.js --dev",
+    "build:prod": "bun run scripts/build.js --prod",
+    "zip:firefox": "bun run build && bun run scripts/zip.js",
+    "watch": "bun run scripts/watch.js",
+    "clean": "bun run scripts/clean.js"
+  },
+  "devDependencies": {
+    "archiver": "^7.0.0",
+    "chokidar": "^3.5.3"
+  },
+  "engines": {
+    "bun": ">=1.3.0"
+  },
+  "author": "Nubet",
+  "license": "MIT"
+}
+

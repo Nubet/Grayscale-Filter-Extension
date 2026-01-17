@@ -1,24 +1,33 @@
-/dist/
-**/*.zip
-
-/node_modules/
-
-**/*.iml
-**/.idea/
-**/out/
-grayscale-filter.iml
-
-# Temp files
-**/*.tmp
-**/*.log
-npm-debug.log*
-
-.npm
-npm-debug.log*
-
-
-package.json
+# Dependencies
+node_modules/
+bun.lockb
 package-lock.json
-**/*.md
-**/*.cmd
-**/*.txt
+
+# Build output
+.output/
+dist/
+build/
+*.zip
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+
+# Web extension artifacts
+web-ext-artifacts/
+
