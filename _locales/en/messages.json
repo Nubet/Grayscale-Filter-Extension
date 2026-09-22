@@ -6,6 +6,7 @@
   "excludeSite": { "message": "Exclude this site" },
   "includeSite": { "message": "Include this site" },
   "unavailableOnPage": { "message": "This page does not allow extensions to run." },
+  "unavailableOnChromeWebStore": { "message": "Chrome Web Store pages do not allow extensions to run. Open a regular website to use the filter." },
   "openSettings": { "message": "Open Settings" },
   "settings": { "message": "Settings" },
   "settingsDescription": { "message": "Manage how the grayscale filter behaves globally and on specific sites." },

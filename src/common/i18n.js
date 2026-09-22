@@ -6,6 +6,7 @@ const FALLBACK_MESSAGES = {
     excludeSite: 'Exclude this site',
     includeSite: 'Include this site',
     unavailableOnPage: 'This page does not allow extensions to run.',
+    unavailableOnChromeWebStore: 'Extensions cannot modify Chrome Web Store pages. Open a regular website to use the filter.',
     openSettings: 'Open Settings',
     settings: 'Settings',
     settingsDescription: 'Manage how the grayscale filter behaves globally and on specific sites.',

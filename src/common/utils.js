@@ -105,6 +105,16 @@ export function isSupportedPageUrl(url) {
     }
 }
 
+export function isChromeWebStoreUrl(url) {
+    try {
+        const { hostname, pathname } = new URL(url);
+        return hostname === 'chromewebstore.google.com'
+            || (hostname === 'chrome.google.com' && pathname.startsWith('/webstore'));
+    } catch (e) {
+        return false;
+    }
+}
+
 export function isUrlExcluded(url, excludeList) {
     if (!url || !Array.isArray(excludeList) || excludeList.length === 0) {
         return false;

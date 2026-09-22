@@ -2,6 +2,7 @@ import {
     extractDomain,
     findMatchingPatternForDomain,
     getSettings,
+    isChromeWebStoreUrl,
     isSupportedPageUrl,
     saveSettingsAndRefresh,
     toggleSiteExclusion,
@@ -126,8 +127,9 @@ function updateCurrentSiteDisplay() {
     const toggleSiteBtn = document.getElementById('toggleSiteBtn');
 
     const domain = extractDomain(currentTab?.url);
+    const isChromeWebStore = isChromeWebStoreUrl(currentTab?.url);
 
-    if (domain && isSupportedPageUrl(currentTab?.url)) {
+    if (domain && isSupportedPageUrl(currentTab?.url) && !isChromeWebStore) {
         currentSiteEl.textContent = domain;
         currentSiteStatus.textContent = '';
         currentSiteStatus.hidden = true;
@@ -135,8 +137,12 @@ function updateCurrentSiteDisplay() {
         toggleSiteBtn.textContent = matched ? t('includeSite') : t('excludeSite');
         toggleSiteBtn.disabled = false;
     } else {
-        currentSiteEl.textContent = currentTab?.url ? t('invalidUrl') : t('noActiveTab');
-        currentSiteStatus.textContent = t('unavailableOnPage');
+        currentSiteEl.textContent = isChromeWebStore
+            ? domain
+            : currentTab?.url ? t('invalidUrl') : t('noActiveTab');
+        currentSiteStatus.textContent = isChromeWebStore
+            ? t('unavailableOnChromeWebStore')
+            : t('unavailableOnPage');
         currentSiteStatus.hidden = false;
         toggleSiteBtn.disabled = true;
     }
