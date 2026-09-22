@@ -1,6 +1,6 @@
 {
   "name": "grayscale-everywhere",
-  "version": "2.1.4",
+  "version": "3.0.0",
   "description": "Cross-browser extension that applies a customizable grayscale filter to any website",
   "private": true,
   "type": "module",

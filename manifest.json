@@ -1,10 +1,10 @@
 {
     "manifest_version": 3,
     "name": "Grayscale Filter",
-    "version": "2.1.4",
+    "version": "3.0.0",
     "description": "Apply a clean grayscale look to every website you visit - no data collection, no tracking. Fully customizable intensity, open-source and privacy-friendly.",
     "developer": {
-        "name": "Nubet",
+        "name": "Norbert Fila (Nubet)",
         "url": "https://github.com/Nubet/Grayscale-Filter-Extension/"
     },
     "icons": {
