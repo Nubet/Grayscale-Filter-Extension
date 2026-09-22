@@ -1,3 +1,5 @@
+import { getSettings, saveSettingsAndRefresh } from '../common/utils.js';
+
 let currentSettings = null;
 
 (async function init() {

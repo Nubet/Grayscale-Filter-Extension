@@ -1,3 +1,5 @@
+import { getSettings, isUrlExcluded } from '../common/utils.js';
+
 const GRAYSCALE_CLASS = 'grayscale-filter-active';
 let domMutationObserver = null;
 

@@ -1,15 +1,15 @@
-const STORAGE_DEFAULTS = {
+export const STORAGE_DEFAULTS = {
     enabled: true,
     intensity: 100,
     excludeList: [],
     advancedSpaTracking: true,
 };
 
-function getStorage() {
+export function getStorage() {
     return browser.storage.sync || browser.storage.local;
 }
 
-async function getSettings() {
+export async function getSettings() {
     const storage = getStorage();
     const result = await storage.get(STORAGE_DEFAULTS);
     return {
@@ -20,12 +20,12 @@ async function getSettings() {
     };
 }
 
-async function saveSettings(settings) {
+export async function saveSettings(settings) {
     const storage = getStorage();
     await storage.set(settings);
 }
 
-function matchPatternToDomain(pattern, domain) {
+export function matchPatternToDomain(pattern, domain) {
     if (!pattern || !domain) return false;
     pattern = pattern.trim();
 
@@ -41,12 +41,12 @@ function matchPatternToDomain(pattern, domain) {
     return false;
 }
 
-function findMatchingPatternForDomain(domain, excludeList) {
+export function findMatchingPatternForDomain(domain, excludeList) {
     if (!Array.isArray(excludeList)) return null;
     return excludeList.find((p) => matchPatternToDomain(p, domain)) || null;
 }
 
-function extractDomain(url) {
+export function extractDomain(url) {
     try {
         return new URL(url).hostname;
     } catch (e) {
@@ -54,7 +54,7 @@ function extractDomain(url) {
     }
 }
 
-function isUrlExcluded(url, excludeList) {
+export function isUrlExcluded(url, excludeList) {
     if (!url || !Array.isArray(excludeList) || excludeList.length === 0) {
         return false;
     }
@@ -65,7 +65,7 @@ function isUrlExcluded(url, excludeList) {
     return excludeList.some((pattern) => matchPatternToDomain(pattern, domain));
 }
 
-async function refreshActiveTabs() {
+export async function refreshActiveTabs() {
     try {
         const tabs = await browser.tabs.query({ active: true });
         for (const tab of tabs) {
@@ -82,7 +82,7 @@ async function refreshActiveTabs() {
     }
 }
 
-async function saveSettingsAndRefresh(settings) {
+export async function saveSettingsAndRefresh(settings) {
     try {
         await saveSettings(settings);
         await refreshActiveTabs();
@@ -93,7 +93,7 @@ async function saveSettingsAndRefresh(settings) {
     }
 }
 
-async function toggleSiteExclusion(domain) {
+export async function toggleSiteExclusion(domain) {
     const settings = await getSettings();
     const match = findMatchingPatternForDomain(domain, settings.excludeList);
 
@@ -109,14 +109,3 @@ async function toggleSiteExclusion(domain) {
     return !match;
 }
 
-window.STORAGE_DEFAULTS = STORAGE_DEFAULTS;
-window.getStorage = getStorage;
-window.getSettings = getSettings;
-window.saveSettings = saveSettings;
-window.matchPatternToDomain = matchPatternToDomain;
-window.findMatchingPatternForDomain = findMatchingPatternForDomain;
-window.extractDomain = extractDomain;
-window.isUrlExcluded = isUrlExcluded;
-window.refreshActiveTabs = refreshActiveTabs;
-window.saveSettingsAndRefresh = saveSettingsAndRefresh;
-window.toggleSiteExclusion = toggleSiteExclusion;

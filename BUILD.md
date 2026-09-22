@@ -20,35 +20,32 @@ bun install
 
 Both modes:
 
-* remove and recreate `.output/firefox-mv2/`
-* copy `manifest.json`, `assets/`, `README.md`, `LICENSE`
-* copy `src/` recursively into `.output/firefox-mv2/` 
+* create browser-specific output in `dist/chrome/` and `dist/firefox/`
+* compile and validate the manifest for the selected browser
+* bundle imported JavaScript and referenced assets
 
 ### 1) Non-minified build 
 
 ```bash
-bun run build:dev
+bun run dev:chrome
+# or
+bun run dev:firefox
 ```
 Result:
 
-* `.output/firefox-mv2/` contains original sourcecode.
+* Extension.js serves the selected browser target with watch mode.
 
 ### 2) Minified build 
 
 ```bash
-bun run build:prod
-# or
 bun run build
 ```
 
 Behavior:
-* `.js` minified with **Terser** using:
-* 
-    * `compress.drop_console = true`
-    * `compress.drop_debugger = true`
-    * `mangle = true`
-* `.css` minified with **CleanCSS**
-* all other files copied unchanged
+* builds Chrome and Firefox artifacts from one MV3 manifest
+* translates the MV3 service worker to Firefox's supported background format
+* injects the `browser.*` polyfill for Chrome
+* bundles and validates manifest entrypoints
 
 Result:
-* `.output/firefox-mv2/` contains minified sourcecode.
+* `dist/chrome/` and `dist/firefox/` contain browser-ready artifacts.

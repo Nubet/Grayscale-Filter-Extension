@@ -1,3 +1,12 @@
+import {
+    STORAGE_DEFAULTS,
+    extractDomain,
+    getSettings,
+    refreshActiveTabs,
+    saveSettings,
+    toggleSiteExclusion,
+} from '../common/utils.js';
+
 const CONTEXT_MENU_ID = 'toggle-grayscale-site';
 
 browser.runtime.onInstalled.addListener(async (details) => {

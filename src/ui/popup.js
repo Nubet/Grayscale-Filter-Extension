@@ -1,14 +1,19 @@
-// Popup UI logic
+import {
+    extractDomain,
+    findMatchingPatternForDomain,
+    getSettings,
+    saveSettingsAndRefresh,
+    toggleSiteExclusion,
+} from '../common/utils.js';
+
 let currentTab = null;
 let currentSettings = null;
 
-// Initialize popup
 (async function init() {
     try {
         const [tab] = await browser.tabs.query({ active: true, currentWindow: true });
         currentTab = tab;
 
-        // Load settings using shared utility
         currentSettings = await getSettings();
 
         updateUI();

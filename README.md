@@ -1,6 +1,6 @@
 # Grayscale Everywhere
 
-Firefox extension that applies a customizable grayscale filter to any website.
+Cross-browser extension for Chrome and Firefox that applies a customizable grayscale filter to any website.
 
 ## Features
 
@@ -18,7 +18,7 @@ Firefox extension that applies a customizable grayscale filter to any website.
 ### Prerequisites
 
 - [Bun](https://bun.sh/) (latest version)
-- Firefox Developer Edition (recommended)
+- Chrome or Firefox (Developer Edition recommended)
 
 ### Installation
 
@@ -26,10 +26,12 @@ Firefox extension that applies a customizable grayscale filter to any website.
 bun install
 ```
 
-### Development (with watch mode)
+### Development
 
 ```bash
-bun dev
+bun run dev:chrome
+# or
+bun run dev:firefox
 ```
 
 ### Production build
@@ -38,13 +40,13 @@ bun dev
 bun run build
 ```
 
-### Create zip for Firefox webstore 
+### Build for both browsers
 
 ```bash
-bun run zip:firefox
+bun run build
 ```
 
-This creates a production-ready `.zip` file in `.output/` ready for submission.
+This creates browser-specific production artifacts in `dist/chrome/` and `dist/firefox/`.
 
 ### Clean build 
 
@@ -54,10 +56,9 @@ bun run clean
 
 ## Temporary Installation
 
-1. Run `bun run build` to build the extension
-2. Open Firefox and go to `about:debugging#/runtime/this-firefox`
-3. Click **Load Temporary Add-on**, select `manifest.json` from `.output/firefox-mv2/`
-4. The extension icon will appear in your toolbar.
+1. Run `bun run build:chrome` or `bun run build:firefox`.
+2. For Chrome, open `chrome://extensions`, enable **Developer mode**, click **Load unpacked**, and select `dist/chrome/`.
+3. For Firefox, open `about:debugging#/runtime/this-firefox`, click **Load Temporary Add-on**, and select `dist/firefox/manifest.json`.
 
 
 ## Contributing
