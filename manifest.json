@@ -1,55 +1,62 @@
 {
-    "manifest_version": 3,
-    "name": "Grayscale Filter",
-    "version": "3.0.0",
-    "default_locale": "en",
-    "description": "Apply a clean grayscale look to every website you visit - no data collection, no tracking. Fully customizable intensity, open-source and privacy-friendly.",
-    "icons": {
-        "48": "assets/icon48.png",
-        "128": "assets/icon128.png"
+  "manifest_version": 3,
+  "name": "Grayscale Filter",
+  "version": "3.0.1",
+  "default_locale": "en",
+  "description": "Apply a clean grayscale look to every website you visit - no data collection, no tracking. Fully customizable intensity, open-source and privacy-friendly.",
+  "icons": {
+    "48": "assets/icon48.png",
+    "128": "assets/icon128.png"
+  },
+  "permissions": [
+    "storage",
+    "tabs",
+    "contextMenus"
+  ],
+  "host_permissions": [
+    "<all_urls>"
+  ],
+  "action": {
+    "default_icon": {
+      "48": "assets/icon48.png",
+      "128": "assets/icon128.png"
     },
-
-    "permissions": ["storage", "tabs", "contextMenus"],
-
-    "host_permissions": ["<all_urls>"],
-
-    "action": {
-        "default_icon": {
-            "48": "assets/icon48.png",
-            "128": "assets/icon128.png"
-        },
-        "default_title": "Grayscale Filter",
-        "default_popup": "src/ui/popup.html"
-    },
-
-    "options_ui": {
-        "page": "src/ui/options.html",
-        "open_in_tab": true
-    },
-
-    "background": {
-        "service_worker": "src/background/background.js"
-    },
-
-    "content_scripts": [
-        {
-            "matches": ["<all_urls>"],
-            "js": ["src/content/content.js"],
-            "css": ["src/content/grayscale.css"],
-            "run_at": "document_start",
-            "all_frames": true,
-            "match_about_blank": true
-        }
-    ],
-
-    "firefox:browser_specific_settings": {
-        "gecko": {
-            "id": "grayscale-filter@nubet",
-            "strict_min_version": "142.0",
-            "data_collection_permissions": {
-                "required": ["none"],
-                "optional": []
-            }
-        }
+    "default_title": "Grayscale Filter",
+    "default_popup": "src/ui/popup.html"
+  },
+  "options_ui": {
+    "page": "src/ui/options.html",
+    "open_in_tab": true
+  },
+  "background": {
+    "service_worker": "src/background/background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "<all_urls>"
+      ],
+      "js": [
+        "src/content/content.js"
+      ],
+      "css": [
+        "src/content/grayscale.css"
+      ],
+      "run_at": "document_start",
+      "all_frames": true,
+      "match_about_blank": true
     }
+  ],
+  "firefox:browser_specific_settings": {
+    "gecko": {
+      "id": "grayscale-filter@nubet",
+      "strict_min_version": "142.0",
+      "data_collection_permissions": {
+        "required": [
+          "none"
+        ],
+        "optional": []
+      }
+    }
+  }
 }
