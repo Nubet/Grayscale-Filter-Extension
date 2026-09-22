@@ -11,32 +11,24 @@
     <header class="popup-header">
         <div class="header-content">
             <img src="../../assets/icon48.png" alt="" class="header-logo" />
-            <h1>Grayscale Filter</h1>
+            <h1 data-i18n="appName">Grayscale Filter</h1>
         </div>
     </header>
 
     <div class="popup-content" style="display: flex; flex-direction: column; gap: 1.5rem;">
         <div class="settings-section" style="padding: 1rem;">
             <label class="toggle-label">
-                <span class="toggle-text">Enable Filter</span>
-                <input type="checkbox" id="enableToggle" />
+                <span class="toggle-text" data-i18n="enableFilter">Enable Filter</span>
+                <input type="checkbox" id="enableToggle" data-setting-control />
             </label>
         </div>
 
         <div class="intensity-section">
             <label for="intensitySlider" class="intensity-label">
-                <span>Intensity</span>
+                <span data-i18n="intensity">Intensity</span>
                 <span id="intensityValue" style="font-family: monospace;">100%</span>
             </label>
-            <input
-                type="range"
-                id="intensitySlider"
-                min="0"
-                max="100"
-                step="5"
-                value="100"
-                class="intensity-slider"
-            />
+            <input type="range" id="intensitySlider" min="0" max="100" step="5" value="100" class="intensity-slider" data-setting-control />
 
             <div class="color-preview-section">
                 <div class="color-grid" id="colorGrid">
@@ -51,15 +43,14 @@
         </div>
 
         <div class="current-site-section">
-            <p class="site-label">Current Website</p>
+            <p class="site-label" data-i18n="currentWebsite">Current Website</p>
             <p id="currentSite" class="site-name">loading...</p>
-            <button id="toggleSiteBtn" class="btn btn-secondary btn-small btn-full-width">
-                Exclude this site
-            </button>
+            <p id="currentSiteStatus" class="site-status" hidden></p>
+            <button id="toggleSiteBtn" class="btn btn-secondary btn-small btn-full-width" data-setting-control>Exclude this site</button>
         </div>
 
         <div class="footer-links">
-            <button id="manageBtn" class="btn-link">Open Settings</button>
+            <button id="manageBtn" class="btn-link" data-i18n="openSettings">Open Settings</button>
         </div>
     </div>
 </div>

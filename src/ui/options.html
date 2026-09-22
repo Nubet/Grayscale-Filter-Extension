@@ -10,103 +10,85 @@
 <div class="options-container">
     <header class="options-header">
         <div class="header-content">
-            <h1>Settings</h1>
+            <h1 data-i18n="settings">Settings</h1>
         </div>
-        <p class="section-description">Manage how the grayscale filter behaves globally and on specific sites.</p>
+        <p class="section-description" data-i18n="settingsDescription">Manage how the grayscale filter behaves globally and on specific sites.</p>
     </header>
 
     <main class="options-content" style="display: flex; flex-direction: column; gap: 2rem;">
         <div id="feedback" class="feedback" style="display: none; opacity: 0;"></div>
 
         <section class="settings-section">
-            <h2>General</h2>
+            <h2 data-i18n="general">General</h2>
             <div style="display: flex; flex-direction: column; gap: 1.5rem; margin-top: 1rem;">
                 <div class="setting-row">
                     <label class="toggle-label">
                         <div>
-                            <span class="toggle-text" style="display: block;">Global Enable</span>
-                            <span class="site-label" style="text-transform: none;">Turn the extension on or off everywhere.</span>
+                            <span class="toggle-text" style="display: block;" data-i18n="globalEnable">Global Enable</span>
+                            <span class="site-label" style="text-transform: none;" data-i18n="globalEnableDescription">Turn the extension on or off everywhere.</span>
                         </div>
-                        <input type="checkbox" id="enableToggle" />
+                        <input type="checkbox" id="enableToggle" data-setting-control />
                     </label>
                 </div>
 
                 <div class="setting-row">
                     <label class="toggle-label">
                         <div>
-                            <span class="toggle-text" style="display: block;">SPA Tracking</span>
-                            <span class="site-label" style="text-transform: none;">Better support for dynamic sites (React, etc.)</span>
+                            <span class="toggle-text" style="display: block;" data-i18n="spaTracking">SPA Tracking</span>
+                            <span class="site-label" style="text-transform: none;" data-i18n="spaTrackingDescription">Better support for dynamic sites (React, etc.)</span>
                         </div>
-                        <input type="checkbox" id="advancedTrackingToggle" />
+                        <input type="checkbox" id="advancedTrackingToggle" data-setting-control />
                     </label>
                 </div>
 
                 <div class="setting-row" style="padding-top: 0.5rem; border-top: 1px solid hsl(var(--border));">
                     <label for="intensitySlider" class="intensity-label" style="margin-bottom: 0.75rem;">
-                        <span>Global Intensity</span>
+                        <span data-i18n="globalIntensity">Global Intensity</span>
                         <span id="intensityValue" style="font-family: monospace;">100%</span>
                     </label>
-                    <input
-                        type="range"
-                        id="intensitySlider"
-                        min="0"
-                        max="100"
-                        step="5"
-                        value="100"
-                        class="intensity-slider"
-                    />
+                    <input type="range" id="intensitySlider" min="0" max="100" step="5" value="100" class="intensity-slider" data-setting-control />
                 </div>
             </div>
         </section>
 
         <section class="settings-section">
-            <h2>Exclusions</h2>
-            <p class="section-description">
-                Prevent the filter from running on specific domains.
-            </p>
+            <h2 data-i18n="exclusions">Exclusions</h2>
+            <p class="section-description" data-i18n="exclusionsDescription">Prevent the filter from running on specific domains.</p>
 
             <form id="addExcludeForm" class="add-pattern-form">
-                <input
-                    type="text"
-                    id="excludeInput"
-                    placeholder="e.g. youtube.com or *.google.com"
-                    class="pattern-input"
-                    required
-                />
-                <button type="submit" class="btn btn-primary">Add Site</button>
+                <input type="text" id="excludeInput" placeholder="e.g. youtube.com or *.google.com" data-i18n="excludePlaceholder" data-i18n-attr="placeholder" class="pattern-input" required />
+                <button type="submit" class="btn btn-primary" data-setting-control data-i18n="addSite">Add Site</button>
             </form>
+
+            <input id="excludeSearch" type="search" class="pattern-input" placeholder="Search exclusions" data-i18n="searchExclusions" data-i18n-attr="placeholder" style="margin-bottom: 1rem;" />
 
             <div class="exclude-list-container">
                 <table id="excludeTable" class="exclude-table">
                     <thead>
                     <tr>
-                        <th>Domain Pattern</th>
+                        <th data-i18n="domainPattern">Domain Pattern</th>
                         <th style="width: 80px;"></th>
                     </tr>
                     </thead>
-                    <tbody id="excludeTableBody">
-                    </tbody>
+                    <tbody id="excludeTableBody"></tbody>
                 </table>
             </div>
         </section>
 
         <section class="settings-section">
-            <h2>Data Management</h2>
-            <p class="section-description">Backup your configuration or restore from a file.</p>
-
+            <h2 data-i18n="dataManagement">Data Management</h2>
+            <p class="section-description" data-i18n="dataManagementDescription">Backup your configuration or restore from a file.</p>
             <div class="import-export-actions">
-                <button id="exportBtn" class="btn btn-secondary">
-                    <span style="margin-right: 8px;">↓</span> Export JSON
-                </button>
-                <button id="importBtn" class="btn btn-secondary">
-                    <span style="margin-right: 8px;">↑</span> Import JSON
-                </button>
+                <button id="exportBtn" class="btn btn-secondary" data-data-control><span style="margin-right: 8px;">↓</span><span data-i18n="exportJson">Export JSON</span></button>
+                <button id="importBtn" class="btn btn-secondary" data-data-control><span style="margin-right: 8px;">↑</span><span data-i18n="importJson">Import JSON</span></button>
             </div>
         </section>
+
     </main>
 
     <footer class="creator-footer">
-        <p>Open source project by <a href="https://github.com/Nubet" target="_blank">Nubet</a></p>
+        <p><span data-i18n="openSourceBy">Open source project by</span> <a href="https://github.com/Nubet" target="_blank">Nubet</a></p>
+        <p><span data-i18n="version">Version</span> <strong id="versionValue">—</strong> · <a href="https://github.com/Nubet/Grayscale-Filter-Extension/issues" target="_blank" rel="noreferrer" data-i18n="reportIssue">Report an issue</a></p>
     </footer>
 </div>
 
