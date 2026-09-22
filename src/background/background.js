@@ -1,8 +1,6 @@
 import {
     STORAGE_DEFAULTS,
     extractDomain,
-    getSettings,
-    refreshActiveTabs,
     saveSettings,
     toggleSiteExclusion,
 } from '../common/utils.js';
@@ -29,22 +27,6 @@ async function setupContextMenu() {
 browser.contextMenus.onClicked.addListener(async (info, tab) => {
     if (info.menuItemId === CONTEXT_MENU_ID && tab?.url) {
         await handleSiteExclusion(tab.url, tab.id);
-    }
-});
-
-browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
-    const handlers = {
-        getSettings: () => getSettings(),
-        saveSettings: () => saveSettings(message.settings),
-        refreshActiveTabs: () => refreshActiveTabs(),
-        toggleSiteExclusion: () => handleSiteExclusion(message.url, message.tabId),
-    };
-
-    if (handlers[message.action]) {
-        handlers[message.action]()
-            .then(sendResponse)
-            .catch((error) => sendResponse({ error: error.message }));
-        return true; // Keep channel open for async response
     }
 });
 
