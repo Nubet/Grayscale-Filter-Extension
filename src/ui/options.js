@@ -1,7 +1,9 @@
 import {
-    STORAGE_DEFAULTS,
     getSettings,
+    isValidExcludePattern,
+    normalizeSettings,
     saveSettingsAndRefresh,
+    validateSettings,
 } from '../common/utils.js';
 import { localizeDocument, t } from '../common/i18n.js';
 
@@ -161,9 +163,9 @@ function importSettings() {
 
         try {
             const imported = JSON.parse(await file.text());
-            validateImportedSettings(imported);
+            if (!validateSettings(imported)) throw new Error(t('importError'));
             const previousSettings = cloneSettings(currentSettings);
-            currentSettings = normalizeImportedSettings(imported);
+            currentSettings = normalizeSettings(imported);
             const saved = await persistSettings(previousSettings, 'importSuccess');
             if (saved) applySettingsToUi(currentSettings);
         } catch (error) {
@@ -264,32 +266,10 @@ function normalizePatternInput(rawValue) {
 }
 
 function validateExcludePattern(pattern) {
-    if (!pattern || !/^(\*\.)?[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)*$/i.test(pattern)) {
+    if (!isValidExcludePattern(pattern)) {
         return t('invalidPattern');
     }
     return null;
-}
-
-function validateImportedSettings(imported) {
-    const isValid = imported &&
-        typeof imported.enabled === 'boolean' &&
-        typeof imported.intensity === 'number' &&
-        Number.isFinite(imported.intensity) &&
-        imported.intensity >= 0 && imported.intensity <= 100 &&
-        Array.isArray(imported.excludeList) &&
-        imported.excludeList.every((pattern) => typeof pattern === 'string') &&
-        (imported.advancedSpaTracking === undefined || typeof imported.advancedSpaTracking === 'boolean');
-
-    if (!isValid) throw new Error(t('importError'));
-}
-
-function normalizeImportedSettings(imported) {
-    return {
-        enabled: imported.enabled,
-        intensity: imported.intensity,
-        excludeList: [...new Set(imported.excludeList.map(normalizePatternInput).filter(Boolean))],
-        advancedSpaTracking: imported.advancedSpaTracking ?? STORAGE_DEFAULTS.advancedSpaTracking,
-    };
 }
 
 function cloneSettings(settings) {

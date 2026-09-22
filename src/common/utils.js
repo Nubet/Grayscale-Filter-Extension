@@ -5,6 +5,8 @@ export const STORAGE_DEFAULTS = {
     advancedSpaTracking: true,
 };
 
+const EXCLUDE_PATTERN = /^(\*\.)?[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)*$/i;
+
 export function getStorage() {
     return browser.storage.sync || browser.storage.local;
 }
@@ -12,30 +14,57 @@ export function getStorage() {
 export async function getSettings() {
     const storage = getStorage();
     const result = await storage.get(STORAGE_DEFAULTS);
+    return normalizeSettings(result);
+}
+
+export function normalizeSettings(settings) {
+    const source = settings && typeof settings === 'object' ? settings : {};
+
     return {
-        enabled: typeof result.enabled === 'boolean' ? result.enabled : STORAGE_DEFAULTS.enabled,
-        intensity: normalizeIntensity(result.intensity),
-        excludeList: normalizeExcludeList(result.excludeList),
-        advancedSpaTracking: typeof result.advancedSpaTracking === 'boolean'
-            ? result.advancedSpaTracking
+        enabled: typeof source.enabled === 'boolean' ? source.enabled : STORAGE_DEFAULTS.enabled,
+        intensity: normalizeIntensity(source.intensity),
+        excludeList: normalizeExcludeList(source.excludeList),
+        advancedSpaTracking: typeof source.advancedSpaTracking === 'boolean'
+            ? source.advancedSpaTracking
             : STORAGE_DEFAULTS.advancedSpaTracking,
     };
 }
 
+export function validateSettings(settings) {
+    return Boolean(
+        settings &&
+        typeof settings.enabled === 'boolean' &&
+        typeof settings.intensity === 'number' &&
+        Number.isFinite(settings.intensity) &&
+        settings.intensity >= 0 &&
+        settings.intensity <= 100 &&
+        Array.isArray(settings.excludeList) &&
+        settings.excludeList.every(isValidExcludePattern) &&
+        (settings.advancedSpaTracking === undefined || typeof settings.advancedSpaTracking === 'boolean')
+    );
+}
+
+export function isValidExcludePattern(pattern) {
+    return typeof pattern === 'string' && EXCLUDE_PATTERN.test(pattern.trim());
+}
+
 function normalizeIntensity(value) {
-    const intensity = Number(value);
-    return Number.isFinite(intensity) ? Math.min(100, Math.max(0, intensity)) : STORAGE_DEFAULTS.intensity;
+    return typeof value === 'number' && Number.isFinite(value)
+        ? Math.min(100, Math.max(0, value))
+        : STORAGE_DEFAULTS.intensity;
 }
 
 function normalizeExcludeList(value) {
     return Array.isArray(value)
-        ? value.filter((pattern) => typeof pattern === 'string').map((pattern) => pattern.trim()).filter(Boolean)
+        ? [...new Set(value
+            .filter((pattern) => isValidExcludePattern(pattern))
+            .map((pattern) => pattern.trim().toLowerCase()))]
         : [];
 }
 
 export async function saveSettings(settings) {
     const storage = getStorage();
-    await storage.set(settings);
+    await storage.set(normalizeSettings(settings));
 }
 
 export function matchPatternToDomain(pattern, domain) {
