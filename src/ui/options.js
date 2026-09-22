@@ -1,49 +1,55 @@
-import { getSettings, saveSettingsAndRefresh } from '../common/utils.js';
+import {
+    STORAGE_DEFAULTS,
+    getSettings,
+    saveSettingsAndRefresh,
+} from '../common/utils.js';
+import { localizeDocument, t } from '../common/i18n.js';
 
 let currentSettings = null;
+let excludeFilter = '';
+let isSaving = false;
 
 (async function init() {
     try {
+        localizeDocument();
         currentSettings = await getSettings();
         applySettingsToUi(currentSettings);
         bindAllListeners();
         renderExcludeList(currentSettings);
+        document.getElementById('versionValue').textContent = browser.runtime.getManifest().version;
     } catch (error) {
         console.error('Options init error:', error);
-        showFeedback('Error initializing settings', 'error');
+        showFeedback(t('errorInitializing'), 'error');
     }
 })();
 
 function bindAllListeners() {
     bindToggleListener({
         elementId: 'enableToggle',
-        getNextValue: (checkbox) => checkbox.checked,
-        applyToSettings: (settings, nextValue) => { settings.enabled = nextValue; },
-        successMessage: 'Settings saved',
+        applyToSettings: (settings, value) => { settings.enabled = value; },
+        successMessage: 'settingsSaved',
     });
 
     bindToggleListener({
         elementId: 'advancedTrackingToggle',
-        getNextValue: (checkbox) => checkbox.checked,
-        applyToSettings: (settings, nextValue) => { settings.advancedSpaTracking = nextValue; },
-        successMessage: 'SPA Tracking updated',
+        applyToSettings: (settings, value) => { settings.advancedSpaTracking = value; },
+        successMessage: 'settingsSaved',
     });
 
     bindIntensitySliderListeners();
     bindExcludeFormListener();
     bindImportExportListeners();
+    bindSearchListener();
 }
 
-function bindToggleListener({ elementId, getNextValue, applyToSettings, successMessage }) {
+function bindToggleListener({ elementId, applyToSettings, successMessage }) {
     const toggle = getElementById(elementId);
     if (!toggle) return;
 
     toggle.addEventListener('change', async () => {
-        const nextValue = getNextValue(toggle);
-        applyToSettings(currentSettings, nextValue);
-
-        await saveSettingsAndRefreshUi();
-        showFeedback(successMessage, 'success');
+        const previousSettings = cloneSettings(currentSettings);
+        applyToSettings(currentSettings, toggle.checked);
+        await persistSettings(previousSettings, successMessage);
     });
 }
 
@@ -53,13 +59,13 @@ function bindIntensitySliderListeners() {
     if (!slider || !value) return;
 
     slider.addEventListener('input', () => {
-        value.textContent = slider.value + '%';
+        value.textContent = `${slider.value}%`;
     });
 
     slider.addEventListener('change', async () => {
+        const previousSettings = cloneSettings(currentSettings);
         currentSettings.intensity = parseInt(slider.value, 10);
-        await saveSettingsAndRefreshUi();
-        showFeedback('Intensity updated', 'success');
+        await persistSettings(previousSettings, 'settingsSaved');
     });
 }
 
@@ -72,53 +78,77 @@ function bindExcludeFormListener() {
         event.preventDefault();
 
         const pattern = normalizePatternInput(input.value);
-        if (!pattern) return;
-
         const validationError = validateExcludePattern(pattern);
         if (validationError) {
             showFeedback(validationError, 'error');
             return;
         }
 
-        const existsError = validateNotAlreadyExcluded(currentSettings, pattern);
-        if (existsError) {
-            showFeedback(existsError, 'error');
+        if (currentSettings.excludeList.some((item) => item.toLowerCase() === pattern)) {
+            showFeedback(t('alreadyExcluded'), 'error');
             return;
         }
 
-        addPatternToExclusions(currentSettings, pattern);
-        await saveSettingsAndRefreshUi();
+        const previousSettings = cloneSettings(currentSettings);
+        currentSettings.excludeList.push(pattern);
 
-        clearInput(input);
-        renderExcludeList(currentSettings);
-        showFeedback('Site added to exclusion list', 'success');
+        const saved = await persistSettings(previousSettings, 'siteAdded');
+        if (saved) clearInput(input);
     });
 }
 
 function bindImportExportListeners() {
-    const exportBtn = getElementById('exportBtn');
-    const importBtn = getElementById('importBtn');
-
-    if (exportBtn) exportBtn.addEventListener('click', exportSettings);
-    if (importBtn) importBtn.addEventListener('click', importSettings);
+    getElementById('exportBtn')?.addEventListener('click', exportSettings);
+    getElementById('importBtn')?.addEventListener('click', importSettings);
 }
 
-async function saveSettingsAndRefreshUi() {
-    await saveSettingsAndRefresh(currentSettings);
+function bindSearchListener() {
+    getElementById('excludeSearch')?.addEventListener('input', (event) => {
+        excludeFilter = event.target.value.trim().toLowerCase();
+        renderExcludeList(currentSettings);
+    });
+}
+
+async function persistSettings(previousSettings, successMessage) {
+    setOptionsBusy(true);
+    showFeedback(t('saving'), 'saving');
+
+    try {
+        const saved = await saveSettingsAndRefresh(currentSettings);
+        if (!saved) throw new Error('Settings were not saved');
+        showFeedback(t(successMessage), 'success');
+    } catch (error) {
+        currentSettings = previousSettings;
+        applySettingsToUi(currentSettings);
+        renderExcludeList(currentSettings);
+        showFeedback(t('saveError'), 'error');
+        console.error('Settings save error:', error);
+        return false;
+    } finally {
+        setOptionsBusy(false);
+        renderExcludeList(currentSettings);
+    }
+
+    return true;
+}
+
+function setOptionsBusy(busy) {
+    isSaving = busy;
+    document.body.classList.toggle('is-saving', busy);
+    document.querySelectorAll('[data-setting-control], [data-data-control]').forEach((control) => {
+        control.disabled = busy;
+    });
 }
 
 async function exportSettings() {
     try {
         const settings = await getSettings();
-        const dataStr = JSON.stringify(settings, null, 2);
-        const dataBlob = new Blob([dataStr], { type: 'application/json' });
-
+        const dataBlob = new Blob([JSON.stringify(settings, null, 2)], { type: 'application/json' });
         downloadBlob(dataBlob, 'grayscale-filter-settings.json');
-
-        showFeedback('Settings exported successfully', 'success');
+        showFeedback(t('exportSuccess'), 'success');
     } catch (error) {
         console.error('Export error:', error);
-        showFeedback('Failed to export settings', 'error');
+        showFeedback(t('saveError'), 'error');
     }
 }
 
@@ -130,20 +160,15 @@ function importSettings() {
         if (!file) return;
 
         try {
-            const text = await file.text();
-            const imported = JSON.parse(text);
-
+            const imported = JSON.parse(await file.text());
             validateImportedSettings(imported);
-
+            const previousSettings = cloneSettings(currentSettings);
             currentSettings = normalizeImportedSettings(imported);
-
-            await saveSettingsAndRefreshUi();
-            applySettingsToUi(currentSettings);
-            renderExcludeList(currentSettings);
-            showFeedback('Settings imported successfully', 'success');
+            const saved = await persistSettings(previousSettings, 'importSuccess');
+            if (saved) applySettingsToUi(currentSettings);
         } catch (error) {
             console.error('Import error:', error);
-            showFeedback('Failed to import settings: ' + error.message, 'error');
+            showFeedback(error.message || t('importError'), 'error');
         }
     });
 
@@ -153,72 +178,64 @@ function importSettings() {
 function applySettingsToUi(settings) {
     if (!settings) return;
 
-    setCheckboxChecked('enableToggle', !!settings.enabled);
-    setCheckboxChecked('advancedTrackingToggle', !!settings.advancedSpaTracking);
+    setCheckboxChecked('enableToggle', settings.enabled);
+    setCheckboxChecked('advancedTrackingToggle', settings.advancedSpaTracking);
 
     const slider = getElementById('intensitySlider');
     const value = getElementById('intensityValue');
     if (slider && value) {
         slider.value = settings.intensity;
-        value.textContent = settings.intensity + '%';
+        value.textContent = `${settings.intensity}%`;
     }
 }
 
 function renderExcludeList(settings) {
     const tbody = getElementById('excludeTableBody');
-    if (!tbody) return;
+    const count = getElementById('excludeCount');
+    if (!tbody || !settings) return;
 
-    tbody.innerHTML = '';
+    const visiblePatterns = settings.excludeList.filter((pattern) => pattern.toLowerCase().includes(excludeFilter));
+    tbody.replaceChildren();
+    if (count) count.textContent = `${visiblePatterns.length} / ${settings.excludeList.length}`;
 
-    if (!settings.excludeList || settings.excludeList.length === 0) {
-        renderEmptyExcludeState(tbody);
+    if (visiblePatterns.length === 0) {
+        renderEmptyExcludeState(tbody, settings.excludeList.length ? t('noMatchingSites') : t('noExcludedSites'));
         return;
     }
 
-    settings.excludeList.forEach((pattern) => {
+    visiblePatterns.forEach((pattern) => {
         const row = tbody.insertRow();
-
         const patternCell = row.insertCell();
         patternCell.textContent = pattern;
-        patternCell.style.fontFamily = 'monospace';
+        patternCell.className = 'pattern-cell';
 
         const actionCell = row.insertCell();
+        actionCell.className = 'action-cell';
         actionCell.appendChild(createRemoveButton(pattern));
     });
 }
 
-function renderEmptyExcludeState(tbody) {
+function renderEmptyExcludeState(tbody, message) {
     const row = tbody.insertRow();
+    row.className = 'empty-row';
     const cell = row.insertCell();
     cell.colSpan = 2;
-    cell.textContent = 'No excluded sites';
-    cell.style.textAlign = 'center';
-    cell.style.color = 'hsl(var(--muted-foreground))';
-    cell.style.fontStyle = 'italic';
-    cell.style.padding = '1.5rem';
+    cell.textContent = message;
 }
 
 function createRemoveButton(pattern) {
     const removeBtn = document.createElement('button');
-    removeBtn.textContent = 'Remove';
+    removeBtn.textContent = t('remove');
     removeBtn.className = 'btn-link';
-    removeBtn.style.color = 'hsl(var(--destructive))';
+    removeBtn.type = 'button';
+    removeBtn.disabled = isSaving;
     removeBtn.addEventListener('click', async () => {
-        await removeSiteFromExclusions(pattern);
+        const previousSettings = cloneSettings(currentSettings);
+        currentSettings.excludeList = currentSettings.excludeList.filter((item) => item !== pattern);
+
+        await persistSettings(previousSettings, 'siteRemoved');
     });
     return removeBtn;
-}
-
-async function removeSiteFromExclusions(pattern) {
-    try {
-        currentSettings.excludeList = currentSettings.excludeList.filter(p => p !== pattern);
-        await saveSettingsAndRefreshUi();
-        renderExcludeList(currentSettings);
-        showFeedback('Site removed from exclusion list', 'success');
-    } catch (error) {
-        console.error('Error removing site:', error);
-        showFeedback('Failed to remove site', 'error');
-    }
 }
 
 function showFeedback(message, type = 'info') {
@@ -227,15 +244,59 @@ function showFeedback(message, type = 'info') {
 
     feedback.className = `feedback ${type}`;
     feedback.textContent = message;
-    feedback.style.display = 'block';
+    feedback.hidden = false;
+    feedback.style.display = 'flex';
+    feedback.setAttribute('role', type === 'error' ? 'alert' : 'status');
     feedback.style.opacity = '1';
 
-    setTimeout(() => {
+    clearTimeout(showFeedback.timeout);
+    showFeedback.timeout = setTimeout(() => {
         feedback.style.opacity = '0';
         setTimeout(() => {
+            feedback.hidden = true;
             feedback.style.display = 'none';
         }, 300);
     }, 3000);
+}
+
+function normalizePatternInput(rawValue) {
+    return (rawValue ?? '').trim().toLowerCase();
+}
+
+function validateExcludePattern(pattern) {
+    if (!pattern || !/^(\*\.)?[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)*$/i.test(pattern)) {
+        return t('invalidPattern');
+    }
+    return null;
+}
+
+function validateImportedSettings(imported) {
+    const isValid = imported &&
+        typeof imported.enabled === 'boolean' &&
+        typeof imported.intensity === 'number' &&
+        Number.isFinite(imported.intensity) &&
+        imported.intensity >= 0 && imported.intensity <= 100 &&
+        Array.isArray(imported.excludeList) &&
+        imported.excludeList.every((pattern) => typeof pattern === 'string') &&
+        (imported.advancedSpaTracking === undefined || typeof imported.advancedSpaTracking === 'boolean');
+
+    if (!isValid) throw new Error(t('importError'));
+}
+
+function normalizeImportedSettings(imported) {
+    return {
+        enabled: imported.enabled,
+        intensity: imported.intensity,
+        excludeList: [...new Set(imported.excludeList.map(normalizePatternInput).filter(Boolean))],
+        advancedSpaTracking: imported.advancedSpaTracking ?? STORAGE_DEFAULTS.advancedSpaTracking,
+    };
+}
+
+function cloneSettings(settings) {
+    return {
+        ...settings,
+        excludeList: [...settings.excludeList],
+    };
 }
 
 function getElementById(elementId) {
@@ -247,28 +308,6 @@ function setCheckboxChecked(elementId, isChecked) {
     if (checkbox) checkbox.checked = isChecked;
 }
 
-function normalizePatternInput(rawValue) {
-    return (rawValue ?? '').trim();
-}
-
-function validateExcludePattern(pattern) {
-    if (pattern.includes('/') && !pattern.startsWith('*.')) {
-        return 'Invalid pattern. Use domain format like "example.com" or "*.example.com"';
-    }
-    return null;
-}
-
-function validateNotAlreadyExcluded(settings, pattern) {
-    if (settings.excludeList.includes(pattern)) {
-        return 'This site is already in the exclusion list';
-    }
-    return null;
-}
-
-function addPatternToExclusions(settings, pattern) {
-    settings.excludeList.push(pattern);
-}
-
 function clearInput(input) {
     input.value = '';
 }
@@ -276,7 +315,7 @@ function clearInput(input) {
 function createJsonFileInput() {
     const input = document.createElement('input');
     input.type = 'file';
-    input.accept = '.json';
+    input.accept = '.json,application/json';
     return input;
 }
 
@@ -284,34 +323,13 @@ function getFirstSelectedFile(event) {
     return event?.target?.files?.[0] ?? null;
 }
 
-function validateImportedSettings(imported) {
-    const isValid =
-        typeof imported.enabled === 'boolean' &&
-        typeof imported.intensity === 'number' &&
-        Array.isArray(imported.excludeList);
-
-    if (!isValid) throw new Error('Invalid settings format');
-}
-
-function normalizeImportedSettings(imported) {
-    return {
-        enabled: imported.enabled,
-        intensity: imported.intensity,
-        excludeList: imported.excludeList,
-        advancedSpaTracking: imported.advancedSpaTracking ?? true,
-    };
-}
-
 function downloadBlob(blob, filename) {
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
-
     link.href = url;
     link.download = filename;
-
     document.body.appendChild(link);
     link.click();
-    document.body.removeChild(link);
-
+    link.remove();
     URL.revokeObjectURL(url);
 }

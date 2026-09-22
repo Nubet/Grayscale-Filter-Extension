@@ -2,15 +2,18 @@ import {
     extractDomain,
     findMatchingPatternForDomain,
     getSettings,
+    isSupportedPageUrl,
     saveSettingsAndRefresh,
     toggleSiteExclusion,
 } from '../common/utils.js';
+import { localizeDocument, t } from '../common/i18n.js';
 
 let currentTab = null;
 let currentSettings = null;
 
 (async function init() {
     try {
+        localizeDocument();
         const [tab] = await browser.tabs.query({ active: true, currentWindow: true });
         currentTab = tab;
 
@@ -21,7 +24,7 @@ let currentSettings = null;
         updateColorGridPreview(currentSettings.intensity);
     } catch (e) {
         console.error('Popup init error:', e);
-        showNotification('Error initializing popup', 'error');
+        showNotification(t('errorInitializing'), 'error');
     }
 })();
 
@@ -35,8 +38,9 @@ function setupEventListeners() {
 function setupEnableToggle() {
     const enableToggle = document.getElementById('enableToggle');
     enableToggle.addEventListener('change', async () => {
+        const previousSettings = { ...currentSettings };
         currentSettings.enabled = enableToggle.checked;
-        await saveSettingsAndRefresh(currentSettings);
+        await persistSettings(previousSettings);
     });
 }
 
@@ -49,9 +53,10 @@ function setupIntensitySlider() {
     });
 
     slider.addEventListener('change', async () => {
+        const previousSettings = { ...currentSettings };
         currentSettings.intensity = parseInt(slider.value, 10);
         updateColorGridPreview(currentSettings.intensity);
-        await saveSettingsAndRefresh(currentSettings);
+        await persistSettings(previousSettings);
     });
 }
 
@@ -66,13 +71,13 @@ function setupSiteToggle() {
 
 async function toggleCurrentSiteExclusion() {
     if (!currentTab?.url) {
-        showNotification('No valid URL found', 'error');
+        showNotification(t('invalidUrl'), 'error');
         return;
     }
 
     const domain = extractDomain(currentTab.url);
     if (!domain) {
-        showNotification('Invalid domain', 'error');
+        showNotification(t('invalidUrl'), 'error');
         return;
     }
 
@@ -84,14 +89,14 @@ async function toggleCurrentSiteExclusion() {
         currentSettings = await getSettings();
 
         showNotification(
-            isNowExcluded ? 'Site added to exclusion list' : 'Site removed from exclusion list',
+            isNowExcluded ? t('siteAdded') : t('siteRemoved'),
             'success'
         );
 
         updateCurrentSiteDisplay();
     } catch (e) {
         console.error('Error toggling site:', e);
-        showNotification('Error updating site exclusion', 'error');
+        showNotification(t('saveError'), 'error');
     } finally {
         toggleSiteBtn.disabled = false;
     }
@@ -111,24 +116,56 @@ function updateUI() {
     intensitySlider.value = currentSettings.intensity;
     intensityValue.textContent = currentSettings.intensity;
 
+    updateColorGridPreview(currentSettings.intensity);
     updateCurrentSiteDisplay();
 }
 
 function updateCurrentSiteDisplay() {
     const currentSiteEl = document.getElementById('currentSite');
+    const currentSiteStatus = document.getElementById('currentSiteStatus');
     const toggleSiteBtn = document.getElementById('toggleSiteBtn');
 
     const domain = extractDomain(currentTab?.url);
 
-    if (domain) {
+    if (domain && isSupportedPageUrl(currentTab?.url)) {
         currentSiteEl.textContent = domain;
+        currentSiteStatus.textContent = '';
+        currentSiteStatus.hidden = true;
         const matched = findMatchingPatternForDomain(domain, currentSettings.excludeList);
-        toggleSiteBtn.textContent = matched ? 'Include this site' : 'Exclude this site';
+        toggleSiteBtn.textContent = matched ? t('includeSite') : t('excludeSite');
         toggleSiteBtn.disabled = false;
     } else {
-        currentSiteEl.textContent = currentTab?.url ? 'Invalid URL' : 'No active tab';
+        currentSiteEl.textContent = currentTab?.url ? t('invalidUrl') : t('noActiveTab');
+        currentSiteStatus.textContent = t('unavailableOnPage');
+        currentSiteStatus.hidden = false;
         toggleSiteBtn.disabled = true;
     }
+}
+
+async function persistSettings(previousSettings) {
+    setPopupBusy(true);
+    showNotification(t('saving'), 'saving');
+
+    try {
+        const saved = await saveSettingsAndRefresh(currentSettings);
+        if (!saved) throw new Error('Settings were not saved');
+        showNotification(t('saved'), 'success');
+    } catch (error) {
+        currentSettings = previousSettings;
+        updateUI();
+        showNotification(t('saveError'), 'error');
+        console.error('Popup save error:', error);
+    } finally {
+        setPopupBusy(false);
+        updateCurrentSiteDisplay();
+    }
+}
+
+function setPopupBusy(isBusy) {
+    document.body.classList.toggle('is-saving', isBusy);
+    document.querySelectorAll('[data-setting-control]').forEach((control) => {
+        control.disabled = isBusy;
+    });
 }
 
 function updateColorGridPreview(intensity) {
@@ -151,6 +188,7 @@ function updateColorGridPreview(intensity) {
 function showNotification(message, type = 'info') {
     const notification = document.createElement('div');
     notification.className = `notification ${type}`;
+    notification.setAttribute('role', type === 'error' ? 'alert' : 'status');
     notification.textContent = message;
 
     const existingNotification = document.querySelector('.notification');
