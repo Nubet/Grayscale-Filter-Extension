@@ -12,8 +12,7 @@
     "build:chrome": "extension build --browser=chrome --polyfill",
     "build:firefox": "extension build --browser=firefox",
     "start:chrome": "extension start --browser=chrome --polyfill",
-    "start:firefox": "extension start --browser=firefox",
-    "clean": "bun run scripts/clean.js"
+    "start:firefox": "extension start --browser=firefox"
   },
   "devDependencies": {
     "extension": "latest",
