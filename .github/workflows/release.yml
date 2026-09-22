@@ -92,8 +92,24 @@ jobs:
           bunx extension build
           --browser=firefox
           --zip
+          --zip-source
           --zip-filename=grayscale-everywhere-extension-${RELEASE_TAG}-firefox.zip
           --silent
+
+      - name: Submit Firefox package to AMO
+        env:
+          FIREFOX_JWT_ISSUER: ${{ secrets.FIREFOX_JWT_ISSUER }}
+          FIREFOX_JWT_SECRET: ${{ secrets.FIREFOX_JWT_SECRET }}
+        run: >-
+          bunx web-ext@10.6.0 sign
+          --source-dir dist/firefox
+          --api-key "$FIREFOX_JWT_ISSUER"
+          --api-secret "$FIREFOX_JWT_SECRET"
+          --channel listed
+          --upload-source-code dist/grayscale-everywhere-${VERSION}-source.zip
+          --artifacts-dir dist/amo
+          --timeout 120000
+          --approval-timeout 0
 
       - name: Commit version and create tag
         if: github.event_name == 'workflow_dispatch'
