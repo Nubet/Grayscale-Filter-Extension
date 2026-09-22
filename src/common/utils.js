@@ -13,11 +13,24 @@ export async function getSettings() {
     const storage = getStorage();
     const result = await storage.get(STORAGE_DEFAULTS);
     return {
-        enabled: result.enabled,
-        intensity: result.intensity,
-        excludeList: Array.isArray(result.excludeList) ? result.excludeList : [],
-        advancedSpaTracking: result.advancedSpaTracking,
+        enabled: typeof result.enabled === 'boolean' ? result.enabled : STORAGE_DEFAULTS.enabled,
+        intensity: normalizeIntensity(result.intensity),
+        excludeList: normalizeExcludeList(result.excludeList),
+        advancedSpaTracking: typeof result.advancedSpaTracking === 'boolean'
+            ? result.advancedSpaTracking
+            : STORAGE_DEFAULTS.advancedSpaTracking,
     };
+}
+
+function normalizeIntensity(value) {
+    const intensity = Number(value);
+    return Number.isFinite(intensity) ? Math.min(100, Math.max(0, intensity)) : STORAGE_DEFAULTS.intensity;
+}
+
+function normalizeExcludeList(value) {
+    return Array.isArray(value)
+        ? value.filter((pattern) => typeof pattern === 'string').map((pattern) => pattern.trim()).filter(Boolean)
+        : [];
 }
 
 export async function saveSettings(settings) {
@@ -51,6 +64,15 @@ export function extractDomain(url) {
         return new URL(url).hostname;
     } catch (e) {
         return null;
+    }
+}
+
+export function isSupportedPageUrl(url) {
+    try {
+        const protocol = new URL(url).protocol;
+        return protocol === 'http:' || protocol === 'https:' || protocol === 'file:';
+    } catch (e) {
+        return false;
     }
 }
 
@@ -105,7 +127,8 @@ export async function toggleSiteExclusion(domain) {
         }
     }
 
-    await saveSettingsAndRefresh(settings);
+    const saved = await saveSettingsAndRefresh(settings);
+    if (!saved) throw new Error('Could not save site exclusion');
     return !match;
 }
 
