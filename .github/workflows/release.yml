@@ -106,7 +106,7 @@ jobs:
           --api-key "$FIREFOX_JWT_ISSUER"
           --api-secret "$FIREFOX_JWT_SECRET"
           --channel listed
-          --upload-source-code dist/grayscale-everywhere-${VERSION}-source.zip
+          --upload-source-code dist/grayscale-filter-${VERSION}-source.zip
           --artifacts-dir dist/amo
           --timeout 120000
           --approval-timeout 0
